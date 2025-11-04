@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
 	"github.com/joho/godotenv"
@@ -13,8 +15,11 @@ import (
 )
 
 type apiConfig struct {
-	db_url string
-	db     db.Queries
+	db_url                 string
+	db                     db.Queries
+	secret                 string
+	jwtExpirationTime      time.Duration
+	refTokenExpirationTime time.Duration
 }
 
 func main() {
@@ -28,6 +33,25 @@ func main() {
 	// cfg is the apiConfig instance that the http server will operate on
 	var cfg apiConfig
 	cfg.db_url = os.Getenv("DB_URL")
+	cfg.secret = os.Getenv("SECRET_KEY")
+
+	// JWT expiration time is provided in .env file as number of seconds
+	// It gets converted to time.Duration
+	jwtExpirationSeconds, err := strconv.Atoi(os.Getenv("JWT_EXPIRATION_TIME"))
+	if err != nil {
+		log.Fatal("Error processing JWT_EXPIRATION_TIME env variable:", err)
+	}
+	cfg.jwtExpirationTime = time.Duration(jwtExpirationSeconds) * time.Second
+
+	// Refresh tokens expiration time is provided in .env file as number of
+	// seconds. It gets converted to time.Duration
+	refTokenExpirationSeconds, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXPIRATION_TIME"))
+	if err != nil {
+		log.Fatal("Error processing REFRESH_TOKEN_EXPIRATION_TIME env variable:", err)
+	}
+	cfg.refTokenExpirationTime = time.Duration(refTokenExpirationSeconds) * time.Second
+
+	// cfg also contains an pointer to the database queries
 	dbase, err := sql.Open("postgres", cfg.db_url)
 	if err != nil {
 		log.Fatal("Error connecting to the database: ", err)
@@ -35,6 +59,10 @@ func main() {
 	dbQueries := db.New(dbase)
 	cfg.db = *dbQueries
 
+	// Here the api handlers are set up
 	mux := http.NewServeMux()
 
+	// User and login related
+	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/login", cfg.handlerLogin)
 }

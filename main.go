@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -20,6 +21,7 @@ type apiConfig struct {
 	secret                 string
 	jwtExpirationTime      time.Duration
 	refTokenExpirationTime time.Duration
+	listen_port            string
 }
 
 func main() {
@@ -34,6 +36,7 @@ func main() {
 	var cfg apiConfig
 	cfg.db_url = os.Getenv("DB_URL")
 	cfg.secret = os.Getenv("SECRET_KEY")
+	cfg.listen_port = os.Getenv("SERVER_LISTEN_PORT")
 
 	// JWT expiration time is provided in .env file as number of seconds
 	// It gets converted to time.Duration
@@ -69,4 +72,14 @@ func main() {
 	mux.HandleFunc("PUT /api/users", cfg.handlerUpdateUser)
 	mux.HandleFunc("GET /api/users/{userid}", cfg.handlerGetUser)
 	mux.HandleFunc("GET /api/users", cfg.handlerGetUsers)
+
+	// Here we create the server
+	s := &http.Server{
+		Addr:    fmt.Sprintf(":%s", cfg.listen_port),
+		Handler: mux,
+	}
+
+	defer s.Shutdown(context.Background())
+
+	log.Fatal(s.ListenAndServe())
 }

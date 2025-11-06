@@ -74,6 +74,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, "Error creating user", http.StatusInternalServerError, err)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	// We respond with all the user's data, except the password hash
@@ -186,6 +187,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refToken,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 
 	dat, err := json.Marshal(loginResponse)
@@ -278,6 +280,7 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	// We respond with all the user's data, except the password hash
 	type updateUserResponse struct {
@@ -336,6 +339,7 @@ func (cfg *apiConfig) handlerRefreshToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	var respBody struct {
@@ -388,6 +392,7 @@ func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
 		Email:     user.Email,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	dat, err := json.Marshal(getUserResponse)
@@ -412,6 +417,7 @@ func (cfg *apiConfig) handlerGetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	dat, err := json.Marshal(users)

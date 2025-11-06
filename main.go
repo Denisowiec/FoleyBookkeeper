@@ -65,4 +65,8 @@ func main() {
 	// User and login related
 	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", cfg.handlerLogin)
+	mux.HandleFunc("POST /api/refresh", cfg.handlerRefreshToken)
+	mux.HandleFunc("PUT /api/users", cfg.handlerUpdateUser)
+	mux.HandleFunc("GET /api/users/{userid}", cfg.handlerGetUser)
+	mux.HandleFunc("GET /api/users", cfg.handlerGetUsers)
 }

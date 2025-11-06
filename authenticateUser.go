@@ -7,17 +7,17 @@ import (
 	"github.com/google/uuid"
 )
 
-func authenticateUser(r *http.Request, secret string) (uuid.UUID, error) {
+func authenticateUser(r *http.Request, secret string) (uuid.UUID, string, error) {
 	// This function returns the uid encoded in the jwt provided and
 	// check whether it was encoded using our secret code
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, "", err
 	}
 	inputUID, err := auth.ValidateJWT(token, secret)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, "", err
 	}
 
-	return inputUID, nil
+	return inputUID, token, nil
 }

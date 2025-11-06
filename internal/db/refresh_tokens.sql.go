@@ -41,12 +41,12 @@ func (q *Queries) GetUserFromRefToken(ctx context.Context, token string) (uuid.U
 	return user_id, err
 }
 
-const revokeRefToken = `-- name: RevokeRefToken :one
-UPDATE refresh_tokens SET revoked_at = NOW(), updated_at = NOW() WHERE token = $1 RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
+const revokeToken = `-- name: RevokeToken :one
+UPDATE refresh_tokens SET revoked_at = Now(), updated_at = Now() WHERE token = $1 RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
 `
 
-func (q *Queries) RevokeRefToken(ctx context.Context, token string) (RefreshToken, error) {
-	row := q.db.QueryRowContext(ctx, revokeRefToken, token)
+func (q *Queries) RevokeToken(ctx context.Context, token string) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, revokeToken, token)
 	var i RefreshToken
 	err := row.Scan(
 		&i.Token,
@@ -60,17 +60,8 @@ func (q *Queries) RevokeRefToken(ctx context.Context, token string) (RefreshToke
 }
 
 const setRefToken = `-- name: SetRefToken :one
-INSERT INTO refresh_tokens (
-    token,
-    user_id,
-    expires_at,
-    revoked_at
-) VALUES (
-    $1,
-    $2,
-    $3,
-    NULL
-) RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
+INSERT INTO refresh_tokens (token, created_at, updated_at, user_id, expires_at,        revoked_at) VALUES 
+                              ($1,      NOW(),      NOW(),      $2, $3, NULL      ) RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
 `
 
 type SetRefTokenParams struct {

@@ -122,7 +122,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if userInput.Password == "" {
-		respondWithError(w, "Password requires", http.StatusBadRequest, nil)
+		respondWithError(w, "Password required", http.StatusBadRequest, nil)
 		return
 	}
 

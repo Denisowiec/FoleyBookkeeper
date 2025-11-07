@@ -14,7 +14,7 @@ import (
 func commandCreateUser(cfg *config, args []string) error {
 	// Command handles creating new users
 	if len(args) < 3 {
-		return fmt.Errorf("Invalid number of arguments")
+		return fmt.Errorf("invalid number of arguments")
 	}
 	url := fmt.Sprintf("%s/api/users", cfg.serverAddress)
 
@@ -70,7 +70,7 @@ func commandCreateUser(cfg *config, args []string) error {
 	// If the REST api respond with something other than 201, somnething went wrong
 	// There should be an error message in the response payload
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("error processing request: %s", createUserResponse.Error)
+		return fmt.Errorf(createUserResponse.Error)
 	}
 
 	fmt.Printf("User %s created successfully\n", createUserResponse.Username)
@@ -85,12 +85,12 @@ func commandLogin(cfg *config, args []string) error {
 	url := fmt.Sprintf("%s/api/login", cfg.serverAddress)
 
 	type reqBodyType struct {
-		Username string `json:"username"`
 		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	reqBody := reqBodyType{
-		Username: args[0],
-		Email:    args[1],
+		Email:    args[0],
+		Password: args[1],
 	}
 	dat, err := json.Marshal(reqBody)
 	if err != nil {
@@ -135,7 +135,7 @@ func commandLogin(cfg *config, args []string) error {
 	// If the REST api didn't respond with 202 it means something went wrong and
 	// there should be an error message waiting in the response body
 	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("error processing request: %s", loginResponse.Error)
+		return fmt.Errorf(loginResponse.Error)
 	}
 
 	// We save the jwt in our cfg struct

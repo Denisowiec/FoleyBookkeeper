@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -29,29 +26,12 @@ func commandCreateUser(cfg *config, args []string) error {
 		Password: args[2],
 	}
 
-	dat, err := json.Marshal(reqBody)
-	if err != nil {
-		return err
-	}
-	payload := bytes.NewBuffer(dat)
-
-	client := &http.Client{}
-
-	req, err := http.NewRequest("POST", url, payload)
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.Do(req)
+	resp, err := sendRequest(reqBody, "POST", url, "")
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
 	type createUserResponseType struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
@@ -62,7 +42,7 @@ func commandCreateUser(cfg *config, args []string) error {
 	}
 
 	createUserResponse := createUserResponseType{}
-	err = json.Unmarshal(respBody, &createUserResponse)
+	err = processResponse(resp, &createUserResponse)
 	if err != nil {
 		return err
 	}
@@ -80,7 +60,14 @@ func commandCreateUser(cfg *config, args []string) error {
 func commandLogin(cfg *config, args []string) error {
 	// Command handles logging in, saves the JWT in the config struct
 	if len(args) < 2 {
-		return fmt.Errorf("invalid number of arguments")
+		// If there are no arguments the command displays login status:
+		if cfg.jwt == "" {
+			fmt.Println("Not logged in.")
+			return nil
+		} else {
+			fmt.Printf("Logged in as %s.\n", cfg.username)
+			return nil
+		}
 	}
 	url := fmt.Sprintf("%s/api/login", cfg.serverAddress)
 
@@ -92,29 +79,12 @@ func commandLogin(cfg *config, args []string) error {
 		Email:    args[0],
 		Password: args[1],
 	}
-	dat, err := json.Marshal(reqBody)
-	if err != nil {
-		return err
-	}
-	payload := bytes.NewBuffer(dat)
 
-	client := &http.Client{}
-
-	req, err := http.NewRequest("POST", url, payload)
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.Do(req)
+	resp, err := sendRequest(reqBody, "POST", url, "")
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
 
 	type loginResponseType struct {
 		ID           uuid.UUID `json:"id"`
@@ -127,7 +97,8 @@ func commandLogin(cfg *config, args []string) error {
 		Error        string    `json:"error"`
 	}
 	loginResponse := loginResponseType{}
-	err = json.Unmarshal(respBody, &loginResponse)
+
+	err = processResponse(resp, &loginResponse)
 	if err != nil {
 		return err
 	}
@@ -143,7 +114,102 @@ func commandLogin(cfg *config, args []string) error {
 	cfg.username = loginResponse.Username
 	cfg.email = loginResponse.Email
 
-	fmt.Printf("Logged in as %s\n", loginResponse.Username)
+	fmt.Printf("Logged in as %s.\n", loginResponse.Username)
 
+	return nil
+}
+
+func commandUpdateUser(cfg *config, args []string) error {
+	// This function updates username and email address, but not the password
+	if len(args) < 2 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+	type reqBodyType struct {
+		Username string `json:"username"`
+		Email    string `json:"email"`
+	}
+	reqBody := reqBodyType{
+		Username: args[0],
+		Email:    args[1],
+	}
+
+	url := fmt.Sprintf("%s/api/users", cfg.serverAddress)
+
+	// PUT is the difference between updating user info and creating a new user
+	// We need to attach the jwt to authorize ourselves for this operation
+	resp, err := sendRequest(reqBody, "PUT", url, cfg.jwt)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	type updateUserResponseType struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Username  string    `json:"username"`
+		Email     string    `json:"email"`
+		Error     string    `json:"error"`
+	}
+
+	updateUserResponse := updateUserResponseType{}
+
+	err = processResponse(resp, &updateUserResponse)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf(updateUserResponse.Error)
+	}
+
+	cfg.username = updateUserResponse.Username
+	cfg.email = updateUserResponse.Email
+
+	fmt.Printf("Username changed to %s,\nEmail changed to %s.\n", cfg.username, cfg.email)
+	return nil
+}
+
+func commandUpdatePassword(cfg *config, args []string) error {
+	// This function updates the user's password
+	if len(args) < 1 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+
+	type reqBodyType struct {
+		Password string `json:"password"`
+	}
+	reqBody := reqBodyType{
+		Password: args[0],
+	}
+
+	url := fmt.Sprintf("%s/api/users", cfg.serverAddress)
+
+	resp, err := sendRequest(reqBody, "PUT", url, cfg.jwt)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	type updatePasswordResponseType struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Username  string    `json:"username"`
+		Email     string    `json:"email"`
+		Error     string    `json:"error"`
+	}
+	updatePasswordResponse := updatePasswordResponseType{}
+
+	err = processResponse(resp, &updatePasswordResponse)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf(updatePasswordResponse.Error)
+	}
+
+	fmt.Println("Password changed successfully.")
 	return nil
 }

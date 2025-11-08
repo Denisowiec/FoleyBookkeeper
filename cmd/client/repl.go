@@ -46,5 +46,17 @@ func listCommands() map[string]cliCommand {
 			usage:       "help <command>",
 			callback:    commandHelp,
 		},
+		"update-user": {
+			name:        "update-user",
+			description: "Updates user's username and e-mail address.",
+			usage:       "update-user <username> <email>",
+			callback:    commandUpdateUser,
+		},
+		"update-password": {
+			name:        "update-password",
+			description: "Updates the user's password.",
+			usage:       "update-password <password>",
+			callback:    commandUpdatePassword,
+		},
 	}
 }

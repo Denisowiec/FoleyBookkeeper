@@ -9,6 +9,8 @@ import (
 // A simple REPL client for the purpose of testing the server
 
 func main() {
+	fmt.Println("Welcome to FoleBookekeeper command line client!")
+	fmt.Println("Type 'help' for a list of commands.")
 	scanner := bufio.NewScanner(os.Stdin)
 	// Config struct containing some persistent state information
 	cfg := config{

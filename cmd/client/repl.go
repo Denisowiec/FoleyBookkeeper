@@ -1,6 +1,10 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/google/uuid"
+)
 
 type cliCommand struct {
 	name        string
@@ -13,6 +17,7 @@ type config struct {
 	username      string
 	email         string
 	jwt           string
+	userID        uuid.UUID
 	serverAddress string
 	commands      map[string]cliCommand
 }
@@ -57,6 +62,12 @@ func listCommands() map[string]cliCommand {
 			description: "Updates the user's password.",
 			usage:       "update-password <password>",
 			callback:    commandUpdatePassword,
+		},
+		"get-user": {
+			name:        "get-user",
+			description: "Display all of the user's info.",
+			usage:       "get-user <ID>",
+			callback:    commandGetUserInfo,
 		},
 	}
 }

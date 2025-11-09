@@ -113,6 +113,7 @@ func commandLogin(cfg *config, args []string) error {
 	cfg.jwt = loginResponse.JWT
 	cfg.username = loginResponse.Username
 	cfg.email = loginResponse.Email
+	cfg.userID = loginResponse.ID
 
 	fmt.Printf("Logged in as %s.\n", loginResponse.Username)
 
@@ -211,5 +212,45 @@ func commandUpdatePassword(cfg *config, args []string) error {
 	}
 
 	fmt.Println("Password changed successfully.")
+	return nil
+}
+
+func commandGetUserInfo(cfg *config, args []string) error {
+	var id string
+	if len(args) < 1 {
+		id = cfg.userID.String()
+	} else {
+		// TODO: This command should probably work on username not, userID
+		id = args[0]
+	}
+
+	url := fmt.Sprintf("%s/api/users/%s", cfg.serverAddress, id)
+
+	// This is a simple GET request, so we use a standard function for it.
+	resp, err := sendEmptyRequest("GET", url, cfg.jwt)
+	if err != nil {
+		return err
+	}
+	type getUserResponseType struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Username  string    `json:"username"`
+		Email     string    `json:"email"`
+		Error     string    `json:"error"`
+	}
+	respBody := getUserResponseType{}
+	err = processResponse(resp, &respBody)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(respBody.Error)
+	}
+
+	fmt.Printf("UserID: %s\nCreated: %v\nUpdated: %v\nUsername: %s\nEmail: %s\n",
+		respBody.ID.String(), respBody.CreatedAt, respBody.UpdatedAt, respBody.Username, respBody.Email)
+
 	return nil
 }

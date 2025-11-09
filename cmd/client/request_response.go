@@ -29,6 +29,19 @@ func sendRequest[T any](input T, method, url, jwt string) (*http.Response, error
 	return client.Do(req)
 }
 
+func sendEmptyRequest(method, url, jwt string) (*http.Response, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	if jwt != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
+	}
+
+	return client.Do(req)
+}
+
 func processResponse[T any](resp *http.Response, dat *T) error {
 	// This is a quick function that encapsulates the steps for processing server's response
 	respBody, err := io.ReadAll(resp.Body)

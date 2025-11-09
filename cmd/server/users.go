@@ -364,7 +364,7 @@ func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// We extract the selected user's id from the http path
-	reqId, err := uuid.Parse(r.PathValue("chirpid"))
+	reqId, err := uuid.Parse(r.PathValue("userid"))
 	if err != nil {
 		respondWithError(w, "Error parsing request", http.StatusBadRequest, err)
 		return

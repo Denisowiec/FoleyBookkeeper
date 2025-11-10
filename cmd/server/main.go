@@ -73,6 +73,12 @@ func main() {
 	mux.HandleFunc("GET /api/users/{userid}", cfg.handlerGetUser)
 	mux.HandleFunc("GET /api/users", cfg.handlerGetUsers)
 
+	// Project related
+	mux.HandleFunc("POST /api/projects", cfg.handlerCreateProject)
+	mux.HandleFunc("PUT /api/projects", cfg.handlerUpdateProject)
+	mux.HandleFunc("GET /api/projects/{projectid}", cfg.handlerGetProjectByID)
+	mux.HandleFunc("GET /api/projects", cfg.handlerGetAllProjects)
+
 	// Here we create the server
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.listen_port),

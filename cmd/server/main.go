@@ -84,7 +84,7 @@ func main() {
 	mux.HandleFunc("POST /api/projects", cfg.handlerCreateProject)
 	mux.HandleFunc("PUT /api/projects/{projectid}", cfg.handlerUpdateProject)
 	mux.HandleFunc("GET /api/projects/{projectid}", cfg.handlerGetProjectByID)
-	mux.HandleFunc("GET /api/projects", cfg.handlerGetAllProjects)
+	mux.HandleFunc("GET /api/projects", cfg.handlerGetProjectByTitle)
 
 	// Here we create the server
 	s := &http.Server{

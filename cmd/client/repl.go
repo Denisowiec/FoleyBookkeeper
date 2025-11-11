@@ -69,5 +69,35 @@ func listCommands() map[string]cliCommand {
 			usage:       "get-user <ID>",
 			callback:    commandGetUserInfo,
 		},
+		"create-client": {
+			name:        "create-client",
+			description: "Create a new client.",
+			usage:       "create-client <name> <email> <notes>",
+			callback:    commandCreateClient,
+		},
+		"update-client": {
+			name:        "update-client",
+			description: "Update a client.",
+			usage:       "update-client <old_name> <new_name> <notes>",
+			callback:    commandUpdateClient,
+		},
+		"create-project": {
+			name:        "create-project",
+			description: "Create a new project",
+			usage:       "create-project <title> <client>",
+			callback:    commandCreateProject,
+		},
+		"update-project": {
+			name:        "update-project",
+			description: "Update a project",
+			usage:       "update-project <old_title> <new_title> <client>",
+			callback:    commandUpdateProject,
+		},
+		"show-project": {
+			name:        "show-project",
+			description: "Display basic info about a project",
+			usage:       "show-project <title>",
+			callback:    commandGetProjectInfo,
+		},
 	}
 }

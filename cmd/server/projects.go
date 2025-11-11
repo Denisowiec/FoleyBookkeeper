@@ -58,6 +58,41 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 	w.Write(dat)
 }
 
+func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Request) {
+	_, _, err := authenticateUser(r, cfg.secret)
+	if err != nil {
+		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
+		return
+	}
+
+	type projectInputType struct {
+		ProjectTitle string `json:"title"`
+	}
+	projectInput := projectInputType{}
+	decoder := json.NewDecoder(r.Body)
+
+	err = decoder.Decode(&projectInput)
+	if err != nil {
+		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+		return
+	}
+
+	prj, err := cfg.db.GetProjectByTitle(r.Context(), projectInput.ProjectTitle)
+	if err != nil {
+		respondWithError(w, "Project not found", http.StatusNotFound, err)
+		return
+	}
+
+	dat, err := json.Marshal(prj)
+	if err != nil {
+		respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(dat)
+}
+
 func (cfg *apiConfig) handlerGetProjectByID(w http.ResponseWriter, r *http.Request) {
 	// Function handles requests to get project data
 	// Requires authentication

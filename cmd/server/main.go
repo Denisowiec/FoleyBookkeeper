@@ -66,16 +66,23 @@ func main() {
 	mux := http.NewServeMux()
 
 	// User and login related
-	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", cfg.handlerLogin)
 	mux.HandleFunc("POST /api/refresh", cfg.handlerRefreshToken)
-	mux.HandleFunc("PUT /api/users", cfg.handlerUpdateUser)
+	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	//mux.HandleFunc("PUT /api/users/{userid}", cfg.handlerUpdateUser)
+	mux.HandleFunc("PUT /api/users", cfg.handlerUpdateUserSelf)
 	mux.HandleFunc("GET /api/users/{userid}", cfg.handlerGetUser)
 	mux.HandleFunc("GET /api/users", cfg.handlerGetUsers)
 
+	// Client related
+	mux.HandleFunc("POST /api/clients", cfg.handlerCreateClient)
+	mux.HandleFunc("PUT /api/clients/{clientid}", cfg.handlerUpdateClient)
+	mux.HandleFunc("GET /api/clients/{clientid}", cfg.handlerGetClientByID)
+	mux.HandleFunc("GET /api/clients", cfg.handlerGetClientByName)
+
 	// Project related
 	mux.HandleFunc("POST /api/projects", cfg.handlerCreateProject)
-	mux.HandleFunc("PUT /api/projects", cfg.handlerUpdateProject)
+	mux.HandleFunc("PUT /api/projects/{projectid}", cfg.handlerUpdateProject)
 	mux.HandleFunc("GET /api/projects/{projectid}", cfg.handlerGetProjectByID)
 	mux.HandleFunc("GET /api/projects", cfg.handlerGetAllProjects)
 

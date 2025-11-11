@@ -104,6 +104,15 @@ func (ns NullPart) Value() (driver.Value, error) {
 	return string(ns.Part), nil
 }
 
+type Client struct {
+	ID         uuid.UUID      `json:"id"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	ClientName string         `json:"client_name"`
+	Email      sql.NullString `json:"email"`
+	Notes      sql.NullString `json:"notes"`
+}
+
 type Episode struct {
 	ID        uuid.UUID      `json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -117,7 +126,7 @@ type Project struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Title     string    `json:"title"`
-	Client    string    `json:"client"`
+	ClientID  uuid.UUID `json:"client_id"`
 }
 
 type RefreshToken struct {

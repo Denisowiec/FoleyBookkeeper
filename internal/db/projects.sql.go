@@ -14,33 +14,50 @@ import (
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (
     title,
-    client
+    client_id
 ) VALUES (
     $1,
     $2
-) RETURNING id, created_at, updated_at, title, client
+) RETURNING id, created_at, updated_at, title, client_id
 `
 
 type CreateProjectParams struct {
-	Title  string `json:"title"`
-	Client string `json:"client"`
+	Title    string    `json:"title"`
+	ClientID uuid.UUID `json:"client_id"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, createProject, arg.Title, arg.Client)
+	row := q.db.QueryRowContext(ctx, createProject, arg.Title, arg.ClientID)
 	var i Project
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Title,
-		&i.Client,
+		&i.ClientID,
+	)
+	return i, err
+}
+
+const deleteProject = `-- name: DeleteProject :one
+DELETE FROM projects WHERE id=$1 RETURNING id, created_at, updated_at, title, client_id
+`
+
+func (q *Queries) DeleteProject(ctx context.Context, id uuid.UUID) (Project, error) {
+	row := q.db.QueryRowContext(ctx, deleteProject, id)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Title,
+		&i.ClientID,
 	)
 	return i, err
 }
 
 const getAllProjects = `-- name: GetAllProjects :many
-SELECT id, created_at, updated_at, title, client FROM projects
+SELECT id, created_at, updated_at, title, client_id FROM projects
 `
 
 func (q *Queries) GetAllProjects(ctx context.Context) ([]Project, error) {
@@ -57,7 +74,7 @@ func (q *Queries) GetAllProjects(ctx context.Context) ([]Project, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Title,
-			&i.Client,
+			&i.ClientID,
 		); err != nil {
 			return nil, err
 		}
@@ -73,7 +90,7 @@ func (q *Queries) GetAllProjects(ctx context.Context) ([]Project, error) {
 }
 
 const getProjectByID = `-- name: GetProjectByID :one
-SELECT id, created_at, updated_at, title, client FROM projects WHERE id=$1
+SELECT id, created_at, updated_at, title, client_id FROM projects WHERE id=$1
 `
 
 func (q *Queries) GetProjectByID(ctx context.Context, id uuid.UUID) (Project, error) {
@@ -84,13 +101,13 @@ func (q *Queries) GetProjectByID(ctx context.Context, id uuid.UUID) (Project, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Title,
-		&i.Client,
+		&i.ClientID,
 	)
 	return i, err
 }
 
 const getProjectByTitle = `-- name: GetProjectByTitle :one
-SELECT id, created_at, updated_at, title, client FROM projects WHERE title=$1
+SELECT id, created_at, updated_at, title, client_id FROM projects WHERE title=$1
 `
 
 func (q *Queries) GetProjectByTitle(ctx context.Context, title string) (Project, error) {
@@ -101,17 +118,17 @@ func (q *Queries) GetProjectByTitle(ctx context.Context, title string) (Project,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Title,
-		&i.Client,
+		&i.ClientID,
 	)
 	return i, err
 }
 
 const getProjectsByClient = `-- name: GetProjectsByClient :many
-SELECT id, created_at, updated_at, title, client FROM projects WHERE client=$1
+SELECT id, created_at, updated_at, title, client_id FROM projects WHERE client_id=$1
 `
 
-func (q *Queries) GetProjectsByClient(ctx context.Context, client string) ([]Project, error) {
-	rows, err := q.db.QueryContext(ctx, getProjectsByClient, client)
+func (q *Queries) GetProjectsByClient(ctx context.Context, clientID uuid.UUID) ([]Project, error) {
+	rows, err := q.db.QueryContext(ctx, getProjectsByClient, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +141,7 @@ func (q *Queries) GetProjectsByClient(ctx context.Context, client string) ([]Pro
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Title,
-			&i.Client,
+			&i.ClientID,
 		); err != nil {
 			return nil, err
 		}
@@ -143,25 +160,25 @@ const updateProject = `-- name: UpdateProject :one
 UPDATE projects SET
     updated_at = NOW(),
     title = $2,
-    client = $3
-WHERE id = $1 RETURNING id, created_at, updated_at, title, client
+    client_id = $3
+WHERE id = $1 RETURNING id, created_at, updated_at, title, client_id
 `
 
 type UpdateProjectParams struct {
-	ID     uuid.UUID `json:"id"`
-	Title  string    `json:"title"`
-	Client string    `json:"client"`
+	ID       uuid.UUID `json:"id"`
+	Title    string    `json:"title"`
+	ClientID uuid.UUID `json:"client_id"`
 }
 
 func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, updateProject, arg.ID, arg.Title, arg.Client)
+	row := q.db.QueryRowContext(ctx, updateProject, arg.ID, arg.Title, arg.ClientID)
 	var i Project
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Title,
-		&i.Client,
+		&i.ClientID,
 	)
 	return i, err
 }

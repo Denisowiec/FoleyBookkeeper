@@ -198,7 +198,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	w.Write(dat)
 }
 
-func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerUpdateUserSelf(w http.ResponseWriter, r *http.Request) {
 	// Handler function for the user altering it's information
 	userID, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {

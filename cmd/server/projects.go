@@ -19,8 +19,8 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 	}
 
 	type projectInputType struct {
-		Title  string `json:"title"`
-		Client string `json:"client"`
+		Title    string `json:"title"`
+		ClientID string `json:"client_id"`
 	}
 
 	projectInput := projectInputType{}
@@ -31,10 +31,15 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Error decoding user request", http.StatusBadRequest, err)
 		return
 	}
+	clientID, err := uuid.Parse(projectInput.ClientID)
+	if err != nil {
+		respondWithError(w, "Error processing user request", http.StatusBadRequest, err)
+		return
+	}
 
 	createProjectParams := db.CreateProjectParams{
-		Title:  projectInput.Title,
-		Client: projectInput.Client,
+		Title:    projectInput.Title,
+		ClientID: clientID,
 	}
 
 	prj, err := cfg.db.CreateProject(r.Context(), createProjectParams)
@@ -63,9 +68,13 @@ func (cfg *apiConfig) handlerGetProjectByID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	projectID := r.PathValue("projectid")
+	projectID, err := uuid.Parse(r.PathValue("projectid"))
+	if err != nil {
+		respondWithError(w, "Error processing user request", http.StatusBadRequest, err)
+		return
+	}
 
-	prj, err := cfg.db.GetProjectByTitle(r.Context(), projectID)
+	prj, err := cfg.db.GetProjectByID(r.Context(), projectID)
 	if err != nil {
 		respondWithError(w, "Project not found", http.StatusNotFound, err)
 		return
@@ -92,9 +101,9 @@ func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Reques
 	}
 
 	type projectInputType struct {
-		ID     uuid.UUID `json:"id"`
-		Title  string    `json:"title"`
-		Client string    `json:"client"`
+		ID       uuid.UUID `json:"id"`
+		Title    string    `json:"title"`
+		ClientID string    `json:"client_id"`
 	}
 	projectInput := projectInputType{}
 
@@ -104,11 +113,16 @@ func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Error decoding user request", http.StatusBadRequest, err)
 		return
 	}
+	clientID, err := uuid.Parse(projectInput.ClientID)
+	if err != nil {
+		respondWithError(w, "Error decoding user request", http.StatusBadRequest, err)
+		return
+	}
 
 	updateProjectParams := db.UpdateProjectParams{
-		ID:     projectInput.ID,
-		Title:  projectInput.Title,
-		Client: projectInput.Client,
+		ID:       projectInput.ID,
+		Title:    projectInput.Title,
+		ClientID: clientID,
 	}
 
 	prj, err := cfg.db.UpdateProject(r.Context(), updateProjectParams)

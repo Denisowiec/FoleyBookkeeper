@@ -4,7 +4,7 @@ CREATE TABLE projects (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL,
     title TEXT UNIQUE NOT NULL,
-    client TEXT NOT NULL
+    client_id UUID NOT NULL REFERENCES clients ON DELETE CASCADE
 );
 
 -- +goose Down

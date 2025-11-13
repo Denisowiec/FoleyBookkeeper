@@ -41,7 +41,7 @@ func commandCreateProject(cfg *config, args []string) error {
 		return err
 	}
 
-	if resp1.StatusCode != http.StatusAccepted {
+	if resp1.StatusCode != http.StatusOK {
 		return fmt.Errorf(getClientResp.Error)
 	}
 
@@ -78,11 +78,11 @@ func commandCreateProject(cfg *config, args []string) error {
 		return err
 	}
 
-	if resp2.StatusCode != http.StatusAccepted {
+	if resp2.StatusCode != http.StatusCreated {
 		return fmt.Errorf(createProjectResp.Error)
 	}
 
-	fmt.Printf("Project %s created successfully", createProjectResp.Title)
+	fmt.Printf("Project %s created successfully\n", createProjectResp.Title)
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -28,7 +29,64 @@ func cleanInput(text string) []string {
 	fields := strings.Fields(text)
 	fields[0] = strings.ToLower(fields[0])
 
-	return fields
+	if len(fields) == 1 {
+		return fields
+	}
+
+	// We want to allow users to enclose multi-word inputs in parantheses
+	new_fields := []string{}
+	new_fields = append(new_fields, fields[0])
+	multi_field := ""
+	var sign byte
+	for _, item := range fields[1:] {
+		// First, if multi_field isn't empty, it means we're looking for the end of it
+		if multi_field != "" {
+			if item[len(item)-1] == sign {
+				// The end of the item is found, we can empty the multi_field and move on
+				item = strings.Trim(item, string(sign))
+				multi_field = multi_field + item
+
+				new_fields = append(new_fields, multi_field)
+				multi_field = ""
+				continue
+			}
+			multi_field = multi_field + item + " "
+			continue
+		}
+
+		// If there are no parantheses etc we simply transfer the field into the new slice
+		if item[0] != '"' && item[0] != '\'' {
+			new_fields = append(new_fields, item)
+			continue
+		} else {
+			sign = item[0]
+		}
+
+		// If there's a paranthese in the beginning, we check if there's also
+		// one at the end of the current field. If so, we remove both and append the item
+		// to the new slice
+		if item[len(item)-1] == sign {
+			item = strings.Trim(item, string(sign))
+			new_fields = append(new_fields, item)
+		} else {
+			item = strings.Trim(item, string(sign))
+			// If there's not a paranthese at the end, we prepare a string to
+			// concatenate the next field onto
+			multi_field = item + " "
+		}
+	}
+	// If at the end of the loop multi_field isn't empty, we append it now to the slice
+	if multi_field != "" {
+		new_fields = append(new_fields, strings.TrimSpace(multi_field))
+	}
+
+	// FOR DEBUGGING:
+	for _, v := range new_fields {
+		fmt.Print(v, " / ")
+	}
+	fmt.Println()
+
+	return new_fields
 }
 
 func listCommands() map[string]cliCommand {

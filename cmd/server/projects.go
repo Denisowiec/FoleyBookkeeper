@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
@@ -59,11 +60,15 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Request) {
+	// This function returns a single project referenced by title provided in JSON input
+	// If no title is provided, it returns all projects
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
+
+	var dat []byte
 
 	type projectInputType struct {
 		ProjectTitle string `json:"title"`
@@ -72,21 +77,35 @@ func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Re
 	decoder := json.NewDecoder(r.Body)
 
 	err = decoder.Decode(&projectInput)
-	if err != nil {
+
+	switch {
+	case err == io.EOF:
+		// If the body is empty we return a list of all projects
+		list, err := cfg.db.GetAllProjects(r.Context())
+		if err != nil {
+			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
+			return
+		}
+		dat, err = json.Marshal(list)
+		if err != nil {
+			respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
+			return
+		}
+	case err != nil:
 		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
 		return
-	}
-
-	prj, err := cfg.db.GetProjectByTitle(r.Context(), projectInput.ProjectTitle)
-	if err != nil {
-		respondWithError(w, "Project not found", http.StatusNotFound, err)
-		return
-	}
-
-	dat, err := json.Marshal(prj)
-	if err != nil {
-		respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
-		return
+	default:
+		// Non-empty body and no errors
+		prj, err := cfg.db.GetProjectByTitle(r.Context(), projectInput.ProjectTitle)
+		if err != nil {
+			respondWithError(w, "Project not found", http.StatusNotFound, err)
+			return
+		}
+		dat, err = json.Marshal(prj)
+		if err != nil {
+			respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -175,7 +194,7 @@ func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Reques
 	w.Write(dat)
 }
 
-func (cfg *apiConfig) handlerGetAllProjects(w http.ResponseWriter, r *http.Request) {
+/* func (cfg *apiConfig) handlerGetAllProjects(w http.ResponseWriter, r *http.Request) {
 	// This returns all projects
 	// Requires authentification
 	_, _, err := authenticateUser(r, cfg.secret)
@@ -198,4 +217,4 @@ func (cfg *apiConfig) handlerGetAllProjects(w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
-}
+} */

@@ -3,10 +3,21 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
 )
+
+func getProjectByName(cfg *config, name string) (db.Project, error) {
+	// A helper function, since fetching a project by name is a common necessity in a couple commands
+	type getPrjType struct {
+		ProjectTitle string `json:"title"`
+	}
+	getPrjReq := getPrjType{
+		ProjectTitle: name,
+	}
+
+	return getThing(cfg, "/api/projects", getPrjReq, db.Project{})
+}
 
 func commandCreateProject(cfg *config, args []string) error {
 	// Command hanldes creating new projects
@@ -16,37 +27,13 @@ func commandCreateProject(cfg *config, args []string) error {
 	}
 
 	// First we need to fetch the client id from the db
-	url := fmt.Sprintf("%s/api/clients", cfg.serverAddress)
-
-	type getClientReqType struct {
-		ClientName string `json:"client_name"`
-	}
-	getClientReq := getClientReqType{ClientName: args[1]}
-
-	resp1, err := sendRequest(getClientReq, "GET", url, cfg.jwt)
+	client, err := getClientByName(cfg, args[1])
 	if err != nil {
 		return err
-	}
-	defer resp1.Body.Close()
-
-	// The api returns a complete client object, but in this case we only care about the ID
-	type getClientResponseType struct {
-		ID    uuid.UUID `json:"id"`
-		Error string    `json:"error"`
-	}
-	getClientResp := getClientResponseType{}
-
-	err = processResponse(resp1, &getClientResp)
-	if err != nil {
-		return err
-	}
-
-	if resp1.StatusCode != http.StatusOK {
-		return fmt.Errorf(getClientResp.Error)
 	}
 
 	// Now we can create the project
-	url = fmt.Sprintf("%s/api/projects", cfg.serverAddress)
+	url := fmt.Sprintf("%s/api/projects", cfg.serverAddress)
 
 	type createProjectReqType struct {
 		Title    string `json:"title"`
@@ -54,35 +41,26 @@ func commandCreateProject(cfg *config, args []string) error {
 	}
 	createProjectReq := createProjectReqType{
 		Title:    args[0],
-		ClientID: getClientResp.ID.String(),
+		ClientID: client.ID.String(),
 	}
 
-	resp2, err := sendRequest(createProjectReq, "POST", url, cfg.jwt)
+	resp, err := sendRequest(createProjectReq, "POST", url, cfg.jwt)
 	if err != nil {
 		return err
 	}
-	defer resp2.Body.Close()
+	defer resp.Body.Close()
 
-	type createProjectRespType struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Title     string    `json:"title"`
-		ClientID  uuid.UUID `json:"client_id"`
-		Error     string    `json:"error"`
+	if resp.StatusCode != http.StatusCreated {
+		return processErrorResponse(resp)
 	}
 
-	createProjectResp := createProjectRespType{}
-	err = processResponse(resp2, &createProjectResp)
+	prj := db.Project{}
+	err = processResponse(resp, &prj)
 	if err != nil {
 		return err
 	}
 
-	if resp2.StatusCode != http.StatusCreated {
-		return fmt.Errorf(createProjectResp.Error)
-	}
-
-	fmt.Printf("Project %s created successfully\n", createProjectResp.Title)
+	fmt.Printf("Project %s created successfully\n", prj.Title)
 
 	return nil
 }
@@ -98,71 +76,24 @@ func commandUpdateProject(cfg *config, args []string) error {
 	clientID := ""
 
 	if len(args) >= 3 {
-		url := fmt.Sprintf("%s/api/clients", cfg.serverAddress)
-
-		type getClientReqType struct {
-			ClientName string `json:"client_name"`
-		}
-		getClientReq := getClientReqType{ClientName: args[2]}
-
-		resp1, err := sendRequest(getClientReq, "GET", url, cfg.jwt)
-		if err != nil {
-			return err
-		}
-		defer resp1.Body.Close()
-
-		// The api returns a complete client object, but in this case we only care about the ID
-		type getClientResponseType struct {
-			ID    uuid.UUID `json:"id"`
-			Error string    `json:"error"`
-		}
-		getClientResp := getClientResponseType{}
-
-		err = processResponse(resp1, &getClientResp)
+		client, err := getClientByName(cfg, args[2])
 		if err != nil {
 			return err
 		}
 
-		if resp1.StatusCode != http.StatusOK {
-			return fmt.Errorf(getClientResp.Error)
-		}
-
-		clientID = getClientResp.ID.String()
+		clientID = client.ID.String()
 	}
 
 	// Now we fetch the current project's data
-	url := fmt.Sprintf("%s/api/projects", cfg.serverAddress)
-
-	type getPrjReqType struct {
-		ProjectTitle string `json:"title"`
-	}
-	getPrjReq := getPrjReqType{
-		ProjectTitle: args[0],
-	}
-
-	resp2, err := sendRequest(getPrjReq, "GET", url, cfg.jwt)
+	oldPrj, err := getProjectByName(cfg, args[0])
 	if err != nil {
 		return err
-	}
-	defer resp2.Body.Close()
-	type getPrjRespType struct {
-		ID       uuid.UUID `json:"id"`
-		Title    string    `json:"title"`
-		ClientID uuid.UUID `json:"client_id"`
-		Error    string    `json:"error"`
-	}
-	getPrjResp := getPrjRespType{}
-
-	err = processResponse(resp2, &getPrjResp)
-	if err != nil {
-		return err
-	}
-
-	if resp2.StatusCode != http.StatusOK {
-		return fmt.Errorf(getPrjResp.Error)
 	}
 
 	// Now we can update the project
+
+	url := fmt.Sprintf("%s/api/projects", cfg.serverAddress)
+
 	type updateProjectReqType struct {
 		Title    string `json:"title"`
 		ClientID string `json:"client_id"`
@@ -174,35 +105,27 @@ func commandUpdateProject(cfg *config, args []string) error {
 	if clientID != "" {
 		updateProjectReq.ClientID = clientID
 	} else {
-		updateProjectReq.ClientID = getPrjResp.ClientID.String()
+		updateProjectReq.ClientID = oldPrj.ClientID.String()
 	}
 
-	resp3, err := sendRequest(updateProjectReq, "POST", url, cfg.jwt)
+	resp, err := sendRequest(updateProjectReq, "POST", url, cfg.jwt)
 	if err != nil {
 		return err
 	}
-	defer resp3.Body.Close()
+	defer resp.Body.Close()
 
-	type updateProjectRespType struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Title     string    `json:"title"`
-		ClientID  uuid.UUID `json:"client_id"`
-		Error     string    `json:"error"`
+	if resp.StatusCode != http.StatusAccepted {
+		return processErrorResponse(resp)
 	}
 
-	updateProjectResp := updateProjectRespType{}
-	err = processResponse(resp2, &updateProjectResp)
+	prj := db.Project{}
+
+	err = processResponse(resp, &prj)
 	if err != nil {
 		return err
 	}
 
-	if resp3.StatusCode != http.StatusAccepted {
-		return fmt.Errorf(updateProjectResp.Error)
-	}
-
-	fmt.Printf("Project %s updated successfully", updateProjectResp.Title)
+	fmt.Printf("Project %s updated successfully", prj.Title)
 
 	return nil
 }
@@ -214,64 +137,48 @@ func commandGetProjectInfo(cfg *config, args []string) error {
 	}
 
 	// We first fetch the project info
-	url := fmt.Sprintf("%s/api/projects", cfg.serverAddress)
-
-	type getPrjReqType struct {
-		ProjectTitle string `json:"title"`
-	}
-	getPrjReq := getPrjReqType{
-		ProjectTitle: args[0],
-	}
-
-	resp, err := sendRequest(getPrjReq, "GET", url, cfg.jwt)
+	prj, err := getProjectByName(cfg, args[0])
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	type getPrjRespType struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Title     string    `json:"title"`
-		ClientID  uuid.UUID `json:"client_id"`
-		Error     string    `json:"error"`
-	}
-	getPrjResp := getPrjRespType{}
 
-	err = processResponse(resp, &getPrjResp)
+	// Now we fetch the name of the client
+	client, err := getThingByID(cfg, "/api/clients/", prj.ClientID.String(), db.Client{})
+	if err != nil {
+		return err
+	}
+
+	// Now we format the output
+	fmt.Printf("Project title: %s\nProjectID: %s\nCreated at: %v\nUpdated at: %v\nClient: %s\n",
+		prj.Title, prj.ID.String(), prj.CreatedAt, prj.UpdatedAt, client.ClientName)
+	return nil
+}
+
+func commandGetAllProjects(cfg *config, args []string) error {
+	url := fmt.Sprintf("%s/api/projects", cfg.serverAddress)
+
+	var list []db.Project
+
+	resp, err := sendEmptyRequest("GET", url, cfg.jwt)
 	if err != nil {
 		return err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(getPrjResp.Error)
+		return processErrorResponse(resp)
 	}
 
-	// Now we fetch the name of the client
-	url = fmt.Sprintf("%s/api/clients/%s", cfg.serverAddress, getPrjResp.ClientID.String())
-
-	resp2, err := sendEmptyRequest("GET", url, cfg.jwt)
+	err = processResponse(resp, &list)
 	if err != nil {
 		return err
 	}
 
-	type getClientRespType struct {
-		ClientName string `json:"client_name"`
-		Error      string `json:"error"`
+	for _, item := range list {
+		client, err := getThingByID(cfg, "/api/clients", item.ClientID.String(), db.Client{})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Name: %s, client: %s\n", item.Title, client.ClientName)
 	}
-	getClientResp := getClientRespType{}
-
-	err = processResponse(resp2, &getClientResp)
-	if err != nil {
-		return err
-	}
-
-	if resp2.StatusCode != http.StatusOK {
-		return fmt.Errorf(getClientResp.Error)
-	}
-
-	// Now we format the output
-	fmt.Printf("Project title: %s\nProjectID: %s\nCreated at: %v\nUpdated at: %v\nClient: %s\n",
-		getPrjResp.Title, getPrjResp.ID.String(), getPrjResp.CreatedAt, getPrjResp.UpdatedAt, getClientResp.ClientName)
 	return nil
 }

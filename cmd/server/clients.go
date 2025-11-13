@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
@@ -90,35 +91,52 @@ func (cfg *apiConfig) handlerGetClientByID(w http.ResponseWriter, r *http.Reques
 
 func (cfg *apiConfig) handlerGetClientByName(w http.ResponseWriter, r *http.Request) {
 	// This returns client info by it's name given in the json input
+	// If no name is provided, it returns a list of all clients
 	// Requires authentification
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
+	var dat []byte
 
 	type clientInputType struct {
 		ClientName string `json:"client_name"`
 	}
 	clientInput := clientInputType{}
+
 	decoder := json.NewDecoder(r.Body)
 
 	err = decoder.Decode(&clientInput)
-	if err != nil {
+
+	switch {
+	case err == io.EOF:
+		// If the body is empty we return a list of all clients
+		list, err := cfg.db.GetAllClients(r.Context())
+		if err != nil {
+			respondWithError(w, "Error contacting the database", http.StatusInternalServerError, err)
+			return
+		}
+		dat, err = json.Marshal(list)
+		if err != nil {
+			respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
+			return
+		}
+	case err != nil:
 		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
 		return
-	}
-
-	client, err := cfg.db.GetClientByName(r.Context(), clientInput.ClientName)
-	if err != nil {
-		respondWithError(w, "Client not found", http.StatusNotFound, err)
-		return
-	}
-
-	dat, err := json.Marshal(client)
-	if err != nil {
-		respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
-		return
+	default:
+		// Body not empty, no errors found
+		client, err := cfg.db.GetClientByName(r.Context(), clientInput.ClientName)
+		if err != nil {
+			respondWithError(w, "Client not found", http.StatusNotFound, err)
+			return
+		}
+		dat, err = json.Marshal(client)
+		if err != nil {
+			respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -160,7 +178,7 @@ func (cfg *apiConfig) handlerUpdateClient(w http.ResponseWriter, r *http.Request
 	updateClientParams := db.UpdateClientParams{
 		ID:         clientID,
 		ClientName: clientInput.ClientName,
-		Email:      sql.NullString{String: clientInput.ClientName, Valid: true},
+		Email:      sql.NullString{String: clientInput.Email, Valid: true},
 		Notes:      sql.NullString{String: clientInput.Notes, Valid: true},
 	}
 

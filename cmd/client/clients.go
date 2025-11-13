@@ -1,13 +1,45 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
 )
+
+func getClientByName(cfg *config, name string) (db.Client, error) {
+	// A helper function, since fetching a client by name is a common necessity in a couple commands
+
+	type getClientReqType struct {
+		ClientName string `json:"client_name"`
+	}
+	getClientReq := getClientReqType{
+		ClientName: name,
+	}
+
+	return getThing(cfg, "/api/clients", getClientReq, db.Client{})
+
+	/*
+		url := fmt.Sprintf("%s/api/clients", cfg.serverAddress)
+
+		resp1, err := sendRequest(getClientReq, "GET", url, cfg.jwt)
+		if err != nil {
+			return db.Client{}, err
+		}
+		defer resp1.Body.Close()
+
+		if resp1.StatusCode != http.StatusOK {
+			return db.Client{}, processErrorResponse(resp1)
+		}
+
+		clientResponse := db.Client{}
+		err = processResponse(resp1, &clientResponse)
+		if err != nil {
+			return db.Client{}, err
+		}
+
+		return clientResponse, nil*/
+}
 
 func commandCreateClient(cfg *config, args []string) error {
 	// Command handles creating new clients
@@ -36,26 +68,14 @@ func commandCreateClient(cfg *config, args []string) error {
 	}
 	defer resp.Body.Close()
 
-	type createClientResponseType struct {
-		ID         uuid.UUID      `json:"id"`
-		CreatedAt  time.Time      `json:"created_at"`
-		UpdatedAt  time.Time      `json:"updated_at"`
-		ClientName string         `json:"client_name"`
-		Email      sql.NullString `json:"email"`
-		Notes      sql.NullString `json:"notes"`
-		Error      string         `json:"error"`
+	if resp.StatusCode != http.StatusCreated {
+		return processErrorResponse(resp)
 	}
 
-	createClientResponse := createClientResponseType{}
+	createClientResponse := db.Client{}
 	err = processResponse(resp, &createClientResponse)
 	if err != nil {
 		return err
-	}
-
-	// If the REST api respond with something other than 201, somnething went wrong
-	// There should be an error message in the response payload
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf(createClientResponse.Error)
 	}
 
 	fmt.Printf("Client %s created successfully\n", createClientResponse.ClientName)
@@ -69,50 +89,19 @@ func commandUpdateClient(cfg *config, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("invalid number of arguments")
 	}
-	type getClientReqType struct {
-		ClientName string `json:"client_name"`
-	}
-	getClientReq := getClientReqType{
-		ClientName: args[0],
-	}
 
-	// First, we fetch the original client info from the database
-	url := fmt.Sprintf("%s/api/clients", cfg.serverAddress)
-
-	resp1, err := sendRequest(getClientReq, "GET", url, cfg.jwt)
+	client, err := getClientByName(cfg, args[0])
 	if err != nil {
 		return err
-	}
-	defer resp1.Body.Close()
-
-	type getClientResponseType struct {
-		ID         uuid.UUID      `json:"id"`
-		CreatedAt  time.Time      `json:"created_at"`
-		UpdatedAt  time.Time      `json:"updated_at"`
-		ClientName string         `json:"client_name"`
-		Email      sql.NullString `json:"email"`
-		Notes      sql.NullString `json:"notes"`
-		Error      string         `json:"error"`
-	}
-
-	getClientResponse := getClientResponseType{}
-
-	err = processResponse(resp1, &getClientResponse)
-	if err != nil {
-		return err
-	}
-
-	if resp1.StatusCode != http.StatusOK {
-		return fmt.Errorf(getClientResponse.Error)
 	}
 
 	// Now we update the client data
-	url = fmt.Sprintf("%s/api/clients/%s", cfg.serverAddress, getClientResponse.ID.String())
+	url := fmt.Sprintf("%s/api/clients/%s", cfg.serverAddress, client.ID.String())
 
 	type updClientReqType struct {
-		ClientNewName string         `json:"client_name"`
-		Email         sql.NullString `json:"email"`
-		Notes         sql.NullString `json:"notes"`
+		ClientNewName string `json:"client_name"`
+		Email         string `json:"email"`
+		Notes         string `json:"notes"`
 	}
 	updClientReq := updClientReqType{
 		ClientNewName: args[1],
@@ -120,14 +109,14 @@ func commandUpdateClient(cfg *config, args []string) error {
 
 	// We only change the things that were provided as arguments. We leave the rest as it was.
 	if len(args) >= 2 {
-		updClientReq.Email = sql.NullString{String: args[2], Valid: true}
+		updClientReq.Email = args[2]
 	} else {
-		updClientReq.Email = getClientResponse.Email
+		updClientReq.Email = client.Email.String
 	}
 	if len(args) >= 3 {
-		updClientReq.Notes = sql.NullString{String: args[3], Valid: true}
+		updClientReq.Notes = args[3]
 	} else {
-		updClientReq.Notes = getClientResponse.Notes
+		updClientReq.Notes = client.Notes.String
 	}
 
 	resp2, err := sendRequest(updClientReq, "PUT", url, cfg.jwt)
@@ -136,17 +125,59 @@ func commandUpdateClient(cfg *config, args []string) error {
 	}
 	defer resp2.Body.Close()
 
-	updClientResp := getClientResponseType{}
+	if resp2.StatusCode != http.StatusAccepted {
+		return processErrorResponse(resp2)
+	}
+
+	updClientResp := db.Client{}
 
 	err = processResponse(resp2, &updClientResp)
 	if err != nil {
 		return err
 	}
 
-	if resp2.StatusCode != http.StatusAccepted {
-		return fmt.Errorf(updClientResp.Error)
+	fmt.Printf("Client %s updated successfully\n", updClientResp.ClientName)
+	return nil
+}
+
+func commandGetClient(cfg *config, args []string) error {
+	// This function show information about a given client
+	if len(args) == 0 {
+		return fmt.Errorf("invalid number of arguments")
 	}
 
-	fmt.Printf("Client %s updated successfully\n", updClientResp.ClientName)
+	client, err := getClientByName(cfg, args[0])
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Name: %s\nID: %s\nCreated at: %v\nUpdated at: %v\nEmail: %s\nNotes: %s\n",
+		client.ClientName, client.ID.String(), client.CreatedAt, client.UpdatedAt, client.Email.String, client.Notes.String)
+
+	return nil
+}
+
+func commandGetAllClients(cfg *config, args []string) error {
+	url := fmt.Sprintf("%s/api/clients", cfg.serverAddress)
+
+	resp, err := sendEmptyRequest("GET", url, cfg.jwt)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return processErrorResponse(resp)
+	}
+
+	var list []db.Client
+	err = processResponse(resp, &list)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range list {
+		fmt.Printf("%s, email: %s, notes: %s\n", item.ClientName, item.Email.String, item.Notes.String)
+	}
+
 	return nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -80,12 +79,6 @@ func cleanInput(text string) []string {
 		new_fields = append(new_fields, strings.TrimSpace(multi_field))
 	}
 
-	// FOR DEBUGGING:
-	for _, v := range new_fields {
-		fmt.Print(v, " / ")
-	}
-	fmt.Println()
-
 	return new_fields
 }
 
@@ -136,8 +129,20 @@ func listCommands() map[string]cliCommand {
 		"update-client": {
 			name:        "update-client",
 			description: "Update a client.",
-			usage:       "update-client <old_name> <new_name> <notes>",
+			usage:       "update-client <old_name> <new_name> <email> <notes>",
 			callback:    commandUpdateClient,
+		},
+		"show-client": {
+			name:        "show-client",
+			description: "Display basic info about a client",
+			usage:       "show-client <client-name>",
+			callback:    commandGetClient,
+		},
+		"list-clients": {
+			name:        "list-clients",
+			description: "Lists all clients",
+			usage:       "list-clients",
+			callback:    commandGetAllClients,
 		},
 		"create-project": {
 			name:        "create-project",
@@ -156,6 +161,12 @@ func listCommands() map[string]cliCommand {
 			description: "Display basic info about a project",
 			usage:       "show-project <title>",
 			callback:    commandGetProjectInfo,
+		},
+		"get-projects": {
+			name:        "list-projects",
+			description: "List all projects",
+			usage:       "list-projects",
+			callback:    commandGetAllProjects,
 		},
 	}
 }

@@ -89,7 +89,7 @@ func main() {
 	// Episode related
 	mux.HandleFunc("POST /api/episodes", cfg.handlerCreateEpisode)
 	mux.HandleFunc("PUT /api/episodes/{episodeid}", cfg.handlerUpdateEpisode)
-	mux.HandleFunc("GET /api/episodes/{episodeid}", cfg.handlerUpdateEpisode)
+	mux.HandleFunc("GET /api/episodes/{episodeid}", cfg.handlerGetEpisodeByID)
 	mux.HandleFunc("GET /api/episodes", cfg.handlerGetEpisodesForProject)
 
 	// Here we create the server

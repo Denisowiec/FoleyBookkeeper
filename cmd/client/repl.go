@@ -168,5 +168,17 @@ func listCommands() map[string]cliCommand {
 			usage:       "list-projects",
 			callback:    commandGetAllProjects,
 		},
+		"create-episode": {
+			name:        "create-episode",
+			description: "Creates an episode",
+			usage:       "create-episode <project title> <episode number> <episode title>",
+			callback:    commandCreateEpisode,
+		},
+		"get-project-eps": {
+			name:        "get-project-eps",
+			description: "Returns all episodes for a given project",
+			usage:       "get-project-eps <project title>",
+			callback:    commandGetEpisodesForProjects,
+		},
 	}
 }

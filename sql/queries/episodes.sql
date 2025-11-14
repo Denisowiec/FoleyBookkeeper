@@ -27,5 +27,5 @@ SELECT * FROM episodes WHERE project_id = $1 AND episode_number = $2;
 SELECT * FROM episodes;
 
 -- name: GetAllEpisodesForProject :many
-SELECT * FROM episodes WHERE project_id = $1;
+SELECT * FROM episodes WHERE project_id = $1 ORDER BY episode_number ASC;
 

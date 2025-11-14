@@ -79,7 +79,7 @@ func (q *Queries) GetAllEpisodes(ctx context.Context) ([]Episode, error) {
 }
 
 const getAllEpisodesForProject = `-- name: GetAllEpisodesForProject :many
-SELECT id, created_at, updated_at, title, episode_number, project_id FROM episodes WHERE project_id = $1
+SELECT id, created_at, updated_at, title, episode_number, project_id FROM episodes WHERE project_id = $1 ORDER BY episode_number ASC
 `
 
 func (q *Queries) GetAllEpisodesForProject(ctx context.Context, projectID uuid.UUID) ([]Episode, error) {

@@ -114,11 +114,12 @@ type Client struct {
 }
 
 type Episode struct {
-	ID        uuid.UUID      `json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	Title     sql.NullString `json:"title"`
-	ProjectID uuid.UUID      `json:"project_id"`
+	ID            uuid.UUID      `json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Title         sql.NullString `json:"title"`
+	EpisodeNumber int32          `json:"episode_number"`
+	ProjectID     uuid.UUID      `json:"project_id"`
 }
 
 type Project struct {

@@ -5,7 +5,7 @@ CREATE TYPE activity AS ENUM ('record', 'edit', 'service', 'spotting');
 CREATE TABLE sessions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     episode_id UUID NOT NULL REFERENCES episodes ON DELETE CASCADE,
     project_id UUID NOT NULL REFERENCES projects ON DELETE CASCADE,
     duration INTERVAL NOT NULL,
@@ -16,4 +16,4 @@ CREATE TABLE sessions (
 -- +goose Down
 DROP TABLE sessions;
 DROP TYPE part;
-DROP TYPE ativity;
+DROP TYPE activity;

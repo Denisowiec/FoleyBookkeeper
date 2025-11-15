@@ -2,9 +2,10 @@
 CREATE TABLE user_session (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     user_id UUID NOT NULL REFERENCES users ON DELETE CASCADE,
-    session_id UUID NOT NULL REFERENCES sessions ON DELETE CASCADE
+    session_id UUID NOT NULL REFERENCES sessions ON DELETE CASCADE,
+    UNIQUE (user_id, session_id)
 );
 
 -- +goose Down

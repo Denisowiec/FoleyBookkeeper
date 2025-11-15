@@ -29,3 +29,5 @@ SELECT * FROM episodes;
 -- name: GetAllEpisodesForProject :many
 SELECT * FROM episodes WHERE project_id = $1 ORDER BY episode_number ASC;
 
+-- name: DeleteEpisode :one
+DELETE FROM episodes WHERE id = $1 RETURNING *;

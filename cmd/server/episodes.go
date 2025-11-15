@@ -213,3 +213,32 @@ func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
 }
+
+func (cfg *apiConfig) handlerDeleteEpisode(w http.ResponseWriter, r *http.Request) {
+	_, _, err := authenticateUser(r, cfg.secret)
+	if err != nil {
+		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
+		return
+	}
+
+	episodeID, err := uuid.Parse(r.PathValue("episodeid"))
+	if err != nil {
+		respondWithError(w, "Error processing user input", http.StatusBadRequest, err)
+		return
+	}
+
+	ep, err := cfg.db.DeleteEpisode(r.Context(), episodeID)
+	if err != nil {
+		respondWithError(w, "Episode not found", http.StatusNotFound, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+
+	dat, err := json.Marshal(ep)
+	if err != nil {
+		dat = []byte{}
+	}
+
+	w.Write(dat)
+}

@@ -44,6 +44,24 @@ func (q *Queries) CreateEpisode(ctx context.Context, arg CreateEpisodeParams) (E
 	return i, err
 }
 
+const deleteEpisode = `-- name: DeleteEpisode :one
+DELETE FROM episodes WHERE id = $1 RETURNING id, created_at, updated_at, title, episode_number, project_id
+`
+
+func (q *Queries) DeleteEpisode(ctx context.Context, id uuid.UUID) (Episode, error) {
+	row := q.db.QueryRowContext(ctx, deleteEpisode, id)
+	var i Episode
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Title,
+		&i.EpisodeNumber,
+		&i.ProjectID,
+	)
+	return i, err
+}
+
 const getAllEpisodes = `-- name: GetAllEpisodes :many
 SELECT id, created_at, updated_at, title, episode_number, project_id FROM episodes
 `

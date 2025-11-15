@@ -78,18 +78,21 @@ func main() {
 	mux.HandleFunc("POST /api/clients", cfg.handlerCreateClient)
 	mux.HandleFunc("PUT /api/clients/{clientid}", cfg.handlerUpdateClient)
 	mux.HandleFunc("GET /api/clients/{clientid}", cfg.handlerGetClientByID)
+	mux.HandleFunc("DELETE /api/clients/{clientid}", cfg.handlerDeleteClient)
 	mux.HandleFunc("GET /api/clients", cfg.handlerGetClientByName)
 
 	// Project related
 	mux.HandleFunc("POST /api/projects", cfg.handlerCreateProject)
 	mux.HandleFunc("PUT /api/projects/{projectid}", cfg.handlerUpdateProject)
 	mux.HandleFunc("GET /api/projects/{projectid}", cfg.handlerGetProjectByID)
+	mux.HandleFunc("DELETE /api/projects/{projectid}", cfg.handlerDeleteProject)
 	mux.HandleFunc("GET /api/projects", cfg.handlerGetProjectByTitle)
 
 	// Episode related
 	mux.HandleFunc("POST /api/episodes", cfg.handlerCreateEpisode)
 	mux.HandleFunc("PUT /api/episodes/{episodeid}", cfg.handlerUpdateEpisode)
 	mux.HandleFunc("GET /api/episodes/{episodeid}", cfg.handlerGetEpisodeByID)
+	mux.HandleFunc("DELETE /api/episodes/{episodeid}", cfg.handlerDeleteEpisode)
 	mux.HandleFunc("GET /api/episodes", cfg.handlerGetEpisodesForProject)
 
 	// Here we create the server

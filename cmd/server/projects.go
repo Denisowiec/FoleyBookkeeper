@@ -194,27 +194,31 @@ func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Reques
 	w.Write(dat)
 }
 
-/* func (cfg *apiConfig) handlerGetAllProjects(w http.ResponseWriter, r *http.Request) {
-	// This returns all projects
-	// Requires authentification
+func (cfg *apiConfig) handlerDeleteProject(w http.ResponseWriter, r *http.Request) {
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
 
-	prjs, err := cfg.db.GetAllProjects(r.Context())
+	projectID, err := uuid.Parse(r.PathValue("projectid"))
 	if err != nil {
-		respondWithError(w, "Error fetching project from database", http.StatusInternalServerError, err)
+		respondWithError(w, "Error parsing user input", http.StatusBadRequest, err)
 		return
 	}
 
-	dat, err := json.Marshal(prjs)
+	prj, err := cfg.db.DeleteProject(r.Context(), projectID)
 	if err != nil {
-		respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
+		respondWithError(w, "Project not found", http.StatusNotFound, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusAccepted)
+
+	dat, err := json.Marshal(prj)
+	if err != nil {
+		dat = []byte{}
+	}
+
 	w.Write(dat)
-} */
+}

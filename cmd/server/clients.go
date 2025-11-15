@@ -197,3 +197,32 @@ func (cfg *apiConfig) handlerUpdateClient(w http.ResponseWriter, r *http.Request
 
 	w.Write(dat)
 }
+
+func (cfg *apiConfig) handlerDeleteClient(w http.ResponseWriter, r *http.Request) {
+	_, _, err := authenticateUser(r, cfg.secret)
+	if err != nil {
+		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
+		return
+	}
+
+	clientID, err := uuid.Parse(r.PathValue("clientid"))
+	if err != nil {
+		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+		return
+	}
+
+	client, err := cfg.db.DeleteClient(r.Context(), clientID)
+	if err != nil {
+		respondWithError(w, "Client not found", http.StatusNotFound, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+
+	dat, err := json.Marshal(client)
+	if err != nil {
+		dat = []byte{}
+	}
+
+	w.Write(dat)
+}

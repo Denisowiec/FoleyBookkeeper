@@ -95,6 +95,11 @@ func main() {
 	mux.HandleFunc("DELETE /api/episodes/{episodeid}", cfg.handlerDeleteEpisode)
 	mux.HandleFunc("GET /api/episodes", cfg.handlerGetEpisodesForProject)
 
+	// Session related
+	mux.HandleFunc("POST /api/sessions", cfg.handlerCreateSession)
+	mux.HandleFunc("POST /api/sessions/{sessionid}", cfg.handlerAddUsersToSession)
+	mux.HandleFunc("GET /api/sessions/{sessionid}", cfg.handlerGetSession)
+
 	// Here we create the server
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.listen_port),

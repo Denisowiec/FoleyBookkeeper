@@ -1,6 +1,6 @@
 -- +goose Up
-CREATE TYPE part AS ENUM ('props', 'footsteps', 'movements', 'dialogue', 'adr', 'music', 'background');
-CREATE TYPE activity AS ENUM ('record', 'edit', 'service', 'spotting');
+CREATE TYPE part AS ENUM ('props', 'footsteps', 'movements', 'dialogue', 'adr', 'music', 'background', 'other');
+CREATE TYPE activity AS ENUM ('record', 'edit', 'service', 'spotting', 'other');
 
 CREATE TABLE sessions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

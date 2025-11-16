@@ -20,6 +20,7 @@ const (
 	ActivityEdit     Activity = "edit"
 	ActivityService  Activity = "service"
 	ActivitySpotting Activity = "spotting"
+	ActivityOther    Activity = "other"
 )
 
 func (e *Activity) Scan(src interface{}) error {
@@ -67,6 +68,7 @@ const (
 	PartAdr        Part = "adr"
 	PartMusic      Part = "music"
 	PartBackground Part = "background"
+	PartOther      Part = "other"
 )
 
 func (e *Part) Scan(src interface{}) error {

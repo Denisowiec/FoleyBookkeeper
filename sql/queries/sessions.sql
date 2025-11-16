@@ -35,9 +35,9 @@ SELECT
     episodes.episode_number AS episode_number,
     projects.id AS project_id,
     projects.title AS project_title
-FROM sessions 
+FROM sessions
 JOIN episodes ON episodes.id = sessions.episode_id
-JOIN projects ON projects.id = sessions.project_id;
+JOIN projects ON projects.id = sessions.project_id WHERE sessions.id = $1;
 
 
 -- name: GetAllSessionsForProject :many
@@ -54,3 +54,6 @@ INSERT INTO user_session (
     $1,
     $2
 ) RETURNING *;
+
+-- name: GetUsersForSession :many
+SELECT user_id FROM user_session WHERE session_id = $1;

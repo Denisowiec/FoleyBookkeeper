@@ -154,9 +154,9 @@ SELECT
     episodes.episode_number AS episode_number,
     projects.id AS project_id,
     projects.title AS project_title
-FROM sessions 
+FROM sessions
 JOIN episodes ON episodes.id = sessions.episode_id
-JOIN projects ON projects.id = sessions.project_id
+JOIN projects ON projects.id = sessions.project_id WHERE sessions.id = $1
 `
 
 type GetSessionRow struct {
@@ -173,8 +173,8 @@ type GetSessionRow struct {
 	ProjectTitle  string         `json:"project_title"`
 }
 
-func (q *Queries) GetSession(ctx context.Context) (GetSessionRow, error) {
-	row := q.db.QueryRowContext(ctx, getSession)
+func (q *Queries) GetSession(ctx context.Context, id uuid.UUID) (GetSessionRow, error) {
+	row := q.db.QueryRowContext(ctx, getSession, id)
 	var i GetSessionRow
 	err := row.Scan(
 		&i.ID,
@@ -190,6 +190,33 @@ func (q *Queries) GetSession(ctx context.Context) (GetSessionRow, error) {
 		&i.ProjectTitle,
 	)
 	return i, err
+}
+
+const getUsersForSession = `-- name: GetUsersForSession :many
+SELECT user_id FROM user_session WHERE session_id = $1
+`
+
+func (q *Queries) GetUsersForSession(ctx context.Context, sessionID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getUsersForSession, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var user_id uuid.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateSession = `-- name: UpdateSession :one

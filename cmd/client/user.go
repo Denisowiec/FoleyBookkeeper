@@ -5,8 +5,35 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
 	"github.com/google/uuid"
 )
+
+func getUserID(cfg *config, name string) (string, error) {
+	url := fmt.Sprintf("%s/api/users", cfg.serverAddress)
+
+	type reqType struct {
+		UserName string `json:"username"`
+	}
+	req := reqType{UserName: name}
+
+	resp, err := sendRequest(req, "GET", url, cfg.jwt)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", processErrorResponse(resp)
+	}
+
+	user := db.User{}
+	err = processResponse(resp, &user)
+	if err != nil {
+		return "", err
+	}
+
+	return user.ID.String(), nil
+}
 
 func commandCreateUser(cfg *config, args []string) error {
 	// Command handles creating new users

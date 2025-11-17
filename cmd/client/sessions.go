@@ -33,11 +33,17 @@ func commandCreateSession(cfg *config, args []string) error {
 		users = append(users, userID)
 	}
 
+	type getEpisodeID
+
 	type createSesType struct {
 		Duration     int64  `json:"duration"`
 		EpisodeID    string `json:"episode_id"`
 		PartWorkedOn string `json:"part_worked_on"`
 		ActivityDone string `json:"activity_done"`
+	}
+	createSesReq := createSesType{
+		Duration: duration,
+		EpisodeID: ,
 	}
 
 	return nil

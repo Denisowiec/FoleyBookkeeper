@@ -151,6 +151,8 @@ func (cfg *apiConfig) handlerGetEpisodeByID(w http.ResponseWriter, r *http.Reque
 }
 
 func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *http.Request) {
+	// Handles requests to list episodes for a project. An episode number can be provided
+	// in which case it will return a specific episode
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthrized", http.StatusUnauthorized, err)

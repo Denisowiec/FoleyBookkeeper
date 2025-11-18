@@ -114,8 +114,7 @@ func (cfg *apiConfig) handlerAddUsersToSession(w http.ResponseWriter, r *http.Re
 	}
 
 	type addUsersToSessionInputType struct {
-		SessionID string   `json:"sesssion_id"`
-		UserIDs   []string `json:"user_ids"`
+		UserIDs []string `json:"user_ids"`
 	}
 	input := addUsersToSessionInputType{}
 
@@ -126,7 +125,7 @@ func (cfg *apiConfig) handlerAddUsersToSession(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	sessionID, err := uuid.Parse(input.SessionID)
+	sessionID, err := uuid.Parse(r.PathValue("sessionid"))
 	if err != nil {
 		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
 		return

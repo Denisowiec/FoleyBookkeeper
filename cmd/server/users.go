@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -405,25 +406,59 @@ func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerGetUsers(w http.ResponseWriter, r *http.Request) {
 	// This function return a list of all the users in the database
+	// If there's a username provided in the input, it returns a single user instead
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
 
-	users, err := cfg.db.GetAllUsers(r.Context())
-	if err != nil {
-		respondWithError(w, "Error fetching users from database", http.StatusInternalServerError, err)
+	type reqBodyType struct {
+		UserName string `json:"username"`
+	}
+	reqBody := reqBodyType{}
+
+	decoder := json.NewDecoder(r.Body)
+
+	err = decoder.Decode(&reqBody)
+
+	switch {
+	case err == io.EOF:
+		users, err := cfg.db.GetAllUsers(r.Context())
+		if err != nil {
+			respondWithError(w, "Error fetching users from database", http.StatusInternalServerError, err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		dat, err := json.Marshal(users)
+		if err != nil {
+			log.Println("Error marshalling server response", err)
+			dat = []byte{}
+		}
+		w.Write(dat)
+
+	case err != nil:
+		respondWithError(w, "Error decoding request", http.StatusBadRequest, err)
 		return
+	default:
+		user, err := cfg.db.GetUserByName(r.Context(), reqBody.UserName)
+		if err != nil {
+			respondWithError(w, "User not found", http.StatusNotFound, err)
+			return
+		}
+
+		dat, err := json.Marshal(user)
+		if err != nil {
+			respondWithError(w, "Error processing response", http.StatusInternalServerError, err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(dat)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	dat, err := json.Marshal(users)
-	if err != nil {
-		log.Println("Error marshalling server response", err)
-		dat = []byte{}
-	}
-	w.Write(dat)
 }

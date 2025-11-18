@@ -180,5 +180,11 @@ func listCommands() map[string]cliCommand {
 			usage:       "get-project-eps <project title>",
 			callback:    commandGetEpisodesForProjects,
 		},
+		"create-session": {
+			name:        "create-session",
+			description: "Creates a new session",
+			usage:       "create-session <project title> <episode number> <duration> <part worked on> <activity done> <user1> <user2> etc...",
+			callback:    commandCreateSession,
+		},
 	}
 }

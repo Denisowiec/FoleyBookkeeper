@@ -31,3 +31,15 @@ func respondWithError(w http.ResponseWriter, message string, errorCode int, err 
 	dat := generateErrorResp(message)
 	w.Write(dat)
 }
+
+func respondWithJSON[T any](w http.ResponseWriter, statusCode int, payload T) error {
+	dat, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	w.Write(dat)
+	return nil
+}

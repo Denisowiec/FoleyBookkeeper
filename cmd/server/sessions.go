@@ -97,13 +97,11 @@ func (cfg *apiConfig) handlerCreateSession(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(session)
+	err = respondWithJSON(w, http.StatusAccepted, session)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerAddUsersToSession(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +124,7 @@ func (cfg *apiConfig) handlerAddUsersToSession(w http.ResponseWriter, r *http.Re
 	}
 
 	sessionID, err := uuid.Parse(r.PathValue("sessionid"))
+
 	if err != nil {
 		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
 		return
@@ -148,13 +147,11 @@ func (cfg *apiConfig) handlerAddUsersToSession(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(input)
+	err = respondWithJSON(w, http.StatusAccepted, input)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetSession(w http.ResponseWriter, r *http.Request) {
@@ -192,12 +189,9 @@ func (cfg *apiConfig) handlerGetSession(w http.ResponseWriter, r *http.Request) 
 		Users:         users,
 	}
 
-	dat, err := json.Marshal(getSesResp)
+	err = respondWithJSON(w, http.StatusOK, getSesResp)
 	if err != nil {
-		respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }

@@ -46,15 +46,11 @@ func (cfg *apiConfig) handlerCreateClient(w http.ResponseWriter, r *http.Request
 		respondWithError(w, "Error creating project", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	dat, err := json.Marshal(client)
+	err = respondWithJSON(w, http.StatusCreated, client)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing return data", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetClientByID(w http.ResponseWriter, r *http.Request) {
@@ -79,14 +75,11 @@ func (cfg *apiConfig) handlerGetClientByID(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	dat, err := json.Marshal(client)
+	err = respondWithJSON(w, http.StatusOK, client)
 	if err != nil {
 		respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetClientByName(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +91,6 @@ func (cfg *apiConfig) handlerGetClientByName(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
-	var dat []byte
 
 	type clientInputType struct {
 		ClientName string `json:"client_name"`
@@ -117,7 +109,7 @@ func (cfg *apiConfig) handlerGetClientByName(w http.ResponseWriter, r *http.Requ
 			respondWithError(w, "Error contacting the database", http.StatusInternalServerError, err)
 			return
 		}
-		dat, err = json.Marshal(list)
+		err = respondWithJSON(w, http.StatusOK, list)
 		if err != nil {
 			respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
 			return
@@ -132,15 +124,12 @@ func (cfg *apiConfig) handlerGetClientByName(w http.ResponseWriter, r *http.Requ
 			respondWithError(w, "Client not found", http.StatusNotFound, err)
 			return
 		}
-		dat, err = json.Marshal(client)
+		err = respondWithJSON(w, http.StatusOK, client)
 		if err != nil {
 			respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
 			return
 		}
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerUpdateClient(w http.ResponseWriter, r *http.Request) {
@@ -188,14 +177,11 @@ func (cfg *apiConfig) handlerUpdateClient(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(client)
+	err = respondWithJSON(w, http.StatusAccepted, client)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerDeleteClient(w http.ResponseWriter, r *http.Request) {
@@ -217,12 +203,9 @@ func (cfg *apiConfig) handlerDeleteClient(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(client)
+	err = respondWithJSON(w, http.StatusAccepted, client)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }

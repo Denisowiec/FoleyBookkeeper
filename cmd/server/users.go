@@ -94,15 +94,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email:     createdUser.Email,
 	}
 
-	dat, err := json.Marshal(resp)
-	// If there's an error at this stage, the user has already been created
-	// We send back an empty payload
+	err = respondWithJSON(w, http.StatusAccepted, resp)
 	if err != nil {
-		log.Println("Error marshalling server response", err)
-		w.Write([]byte{})
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
@@ -188,15 +184,11 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refToken,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(loginResponse)
+	err = respondWithJSON(w, http.StatusAccepted, loginResponse)
 	if err != nil {
-		log.Println("Error marshalling response to login attempt:", err)
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerUpdateUserSelf(w http.ResponseWriter, r *http.Request) {
@@ -281,8 +273,6 @@ func (cfg *apiConfig) handlerUpdateUserSelf(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
 	// We respond with all the user's data, except the password hash
 	type updateUserResponse struct {
 		ID        uuid.UUID `json:"id"`
@@ -297,6 +287,12 @@ func (cfg *apiConfig) handlerUpdateUserSelf(w http.ResponseWriter, r *http.Reque
 		UpdatedAt: newUser.UpdatedAt,
 		Username:  newUser.Username,
 		Email:     newUser.Email,
+	}
+
+	err = respondWithJSON(w, http.StatusAccepted, resp)
+	if err != nil {
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
 
 	dat, err := json.Marshal(resp)
@@ -340,20 +336,16 @@ func (cfg *apiConfig) handlerRefreshToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
 	var respBody struct {
 		JWT string `json:"jwt"`
 	}
 	respBody.JWT = jwt
 
-	dat, err := json.Marshal(respBody)
+	err = respondWithJSON(w, http.StatusOK, respBody)
 	if err != nil {
-		log.Println("Error marshalling server response:", err)
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
@@ -393,15 +385,11 @@ func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
 		Email:     user.Email,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	dat, err := json.Marshal(getUserResponse)
+	err = respondWithJSON(w, http.StatusOK, getUserResponse)
 	if err != nil {
-		log.Println("Error marshalling server response:", err)
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetUsers(w http.ResponseWriter, r *http.Request) {
@@ -430,16 +418,11 @@ func (cfg *apiConfig) handlerGetUsers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		dat, err := json.Marshal(users)
+		err = respondWithJSON(w, http.StatusOK, users)
 		if err != nil {
-			log.Println("Error marshalling server response", err)
-			dat = []byte{}
+			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+			return
 		}
-		w.Write(dat)
-
 	case err != nil:
 		respondWithError(w, "Error decoding request", http.StatusBadRequest, err)
 		return
@@ -450,15 +433,11 @@ func (cfg *apiConfig) handlerGetUsers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dat, err := json.Marshal(user)
+		err = respondWithJSON(w, http.StatusOK, user)
 		if err != nil {
-			respondWithError(w, "Error processing response", http.StatusInternalServerError, err)
+			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(dat)
 	}
 
 }

@@ -52,14 +52,11 @@ func (cfg *apiConfig) handlerCreateEpisode(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-
-	dat, err := json.Marshal(ep)
+	err = respondWithJSON(w, http.StatusAccepted, ep)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerUpdateEpisode(w http.ResponseWriter, r *http.Request) {
@@ -110,15 +107,11 @@ func (cfg *apiConfig) handlerUpdateEpisode(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Error updating episode", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(ep)
+	err = respondWithJSON(w, http.StatusAccepted, ep)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetEpisodeByID(w http.ResponseWriter, r *http.Request) {
@@ -140,14 +133,11 @@ func (cfg *apiConfig) handlerGetEpisodeByID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	dat, err := json.Marshal(ep)
+	err = respondWithJSON(w, http.StatusOK, ep)
 	if err != nil {
-		respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *http.Request) {
@@ -178,8 +168,6 @@ func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var dat []byte
-
 	if episodesInput.EpisodeNumber != 0 {
 		// If a number is provided in the input it means that the client want to get as single episode of the given number
 		getEpisodeParams := db.GetEpisodeByNumberParams{
@@ -192,7 +180,7 @@ func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *htt
 			return
 		}
 
-		dat, err = json.Marshal(ep)
+		err = respondWithJSON(w, http.StatusOK, ep)
 		if err != nil {
 			respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
 			return
@@ -205,15 +193,12 @@ func (cfg *apiConfig) handlerGetEpisodesForProject(w http.ResponseWriter, r *htt
 			return
 		}
 
-		dat, err = json.Marshal(eps)
+		err = respondWithJSON(w, http.StatusOK, eps)
 		if err != nil {
 			respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
 			return
 		}
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerDeleteEpisode(w http.ResponseWriter, r *http.Request) {
@@ -234,13 +219,9 @@ func (cfg *apiConfig) handlerDeleteEpisode(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Episode not found", http.StatusNotFound, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(ep)
+	err = respondWithJSON(w, http.StatusAccepted, ep)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }

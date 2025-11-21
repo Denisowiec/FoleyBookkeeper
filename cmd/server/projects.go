@@ -48,15 +48,11 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Error creating project", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	dat, err := json.Marshal(prj)
+	err = respondWithJSON(w, http.StatusAccepted, prj)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Request) {
@@ -67,8 +63,6 @@ func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Re
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
-
-	var dat []byte
 
 	type projectInputType struct {
 		ProjectTitle string `json:"title"`
@@ -86,7 +80,7 @@ func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Re
 			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
 			return
 		}
-		dat, err = json.Marshal(list)
+		err = respondWithJSON(w, http.StatusOK, list)
 		if err != nil {
 			respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
 			return
@@ -101,15 +95,12 @@ func (cfg *apiConfig) handlerGetProjectByTitle(w http.ResponseWriter, r *http.Re
 			respondWithError(w, "Project not found", http.StatusNotFound, err)
 			return
 		}
-		dat, err = json.Marshal(prj)
+		err = respondWithJSON(w, http.StatusOK, prj)
 		if err != nil {
 			respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
 			return
 		}
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerGetProjectByID(w http.ResponseWriter, r *http.Request) {
@@ -134,14 +125,11 @@ func (cfg *apiConfig) handlerGetProjectByID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	dat, err := json.Marshal(prj)
+	err = respondWithJSON(w, http.StatusOK, prj)
 	if err != nil {
-		respondWithError(w, "Unable to process response data", http.StatusInternalServerError, err)
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Request) {
@@ -185,13 +173,11 @@ func (cfg *apiConfig) handlerUpdateProject(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(prj)
+	err = respondWithJSON(w, http.StatusAccepted, prj)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-	w.Write(dat)
 }
 
 func (cfg *apiConfig) handlerDeleteProject(w http.ResponseWriter, r *http.Request) {
@@ -212,13 +198,9 @@ func (cfg *apiConfig) handlerDeleteProject(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Project not found", http.StatusNotFound, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusAccepted)
-
-	dat, err := json.Marshal(prj)
+	err = respondWithJSON(w, http.StatusAccepted, prj)
 	if err != nil {
-		dat = []byte{}
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
-
-	w.Write(dat)
 }

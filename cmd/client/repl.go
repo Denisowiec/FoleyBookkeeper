@@ -162,7 +162,7 @@ func listCommands() map[string]cliCommand {
 			usage:       "show-project <title>",
 			callback:    commandGetProjectInfo,
 		},
-		"get-projects": {
+		"list-projects": {
 			name:        "list-projects",
 			description: "List all projects",
 			usage:       "list-projects",

@@ -131,3 +131,58 @@ func commandCreateSession(cfg *config, args []string) error {
 
 	return nil
 }
+
+func commandGetSessions(cfg *config, args []string) error {
+	// This command Gets a list of sessions for a given project/episode
+	// Takes project title, episode number and a limit of sessions to return
+	if len(args) < 2 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+
+	limit := 0
+	if len(args) == 3 {
+		var err error
+		limit, err = strconv.Atoi(args[2])
+		if err != nil {
+			return err
+		}
+	}
+
+	projectName := args[0]
+	episodeNumber, err := strconv.Atoi(args[1])
+	if err != nil {
+		return err
+	}
+
+	// Now we need the project id
+	reqPrjBody := struct {
+		ProjectTitle string `json:"title"`
+	}{
+		ProjectTitle: projectName,
+	}
+
+	prj, err := getThing(cfg, "/api/projects", reqPrjBody, db.Project{})
+	if err != nil {
+		return err
+	}
+
+	// Now we need the episode ID
+	reqEpBody := struct {
+		ProjectID     string `json:"project_id"`
+		EpisodeNumber int    `json:"episode_number"`
+	}{
+		ProjectID:     prj.ID.String(),
+		EpisodeNumber: episodeNumber,
+	}
+
+	ep, err := getThing(cfg, "/api/episodes", reqEpBody, db.Episode{})
+	if err != nil {
+		return err
+	}
+
+	episodeID := ep.ID
+
+	// TODO: The actual query
+
+	return nil
+}

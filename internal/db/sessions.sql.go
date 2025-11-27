@@ -44,6 +44,7 @@ func (q *Queries) AddUserToSession(ctx context.Context, arg AddUserToSessionPara
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (
     duration,
+    session_date,
     episode_id,
     project_id,
     part_worked_on,
@@ -51,14 +52,16 @@ INSERT INTO sessions (
 ) VALUES (
     $1,
     $2,
-    (SELECT project_id FROM episodes WHERE id = $2),
     $3,
-    $4
-) RETURNING id, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
+    (SELECT project_id FROM episodes WHERE id = $3),
+    $4,
+    $5
+) RETURNING id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
 `
 
 type CreateSessionParams struct {
 	Duration     int64     `json:"duration"`
+	SessionDate  time.Time `json:"session_date"`
 	EpisodeID    uuid.UUID `json:"episode_id"`
 	PartWorkedOn Part      `json:"part_worked_on"`
 	ActivityDone Activity  `json:"activity_done"`
@@ -67,6 +70,7 @@ type CreateSessionParams struct {
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, createSession,
 		arg.Duration,
+		arg.SessionDate,
 		arg.EpisodeID,
 		arg.PartWorkedOn,
 		arg.ActivityDone,
@@ -74,6 +78,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	var i Session
 	err := row.Scan(
 		&i.ID,
+		&i.SessionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EpisodeID,
@@ -86,7 +91,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const deleteSession = `-- name: DeleteSession :one
-DELETE FROM sessions WHERE id = $1 RETURNING id, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
+DELETE FROM sessions WHERE id = $1 RETURNING id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -94,6 +99,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) (Session, err
 	var i Session
 	err := row.Scan(
 		&i.ID,
+		&i.SessionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EpisodeID,
@@ -105,12 +111,66 @@ func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) (Session, err
 	return i, err
 }
 
-const getAllSessionsForProject = `-- name: GetAllSessionsForProject :many
-SELECT id, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions WHERE project_id = $1
+const getSession = `-- name: GetSession :one
+SELECT 
+    sessions.id,
+    sessions.session_date,
+    sessions.created_at,
+    sessions.updated_at,
+    sessions.duration,
+    sessions.part_worked_on,
+    sessions.activity_done,
+    episodes.id AS episode_id,
+    episodes.title AS episode_title,
+    episodes.episode_number AS episode_number,
+    projects.id AS project_id,
+    projects.title AS project_title
+FROM sessions
+JOIN episodes ON episodes.id = sessions.episode_id
+JOIN projects ON projects.id = sessions.project_id WHERE sessions.id = $1
 `
 
-func (q *Queries) GetAllSessionsForProject(ctx context.Context, projectID uuid.UUID) ([]Session, error) {
-	rows, err := q.db.QueryContext(ctx, getAllSessionsForProject, projectID)
+type GetSessionRow struct {
+	ID            uuid.UUID      `json:"id"`
+	SessionDate   time.Time      `json:"session_date"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Duration      int64          `json:"duration"`
+	PartWorkedOn  Part           `json:"part_worked_on"`
+	ActivityDone  Activity       `json:"activity_done"`
+	EpisodeID     uuid.UUID      `json:"episode_id"`
+	EpisodeTitle  sql.NullString `json:"episode_title"`
+	EpisodeNumber int32          `json:"episode_number"`
+	ProjectID     uuid.UUID      `json:"project_id"`
+	ProjectTitle  string         `json:"project_title"`
+}
+
+func (q *Queries) GetSession(ctx context.Context, id uuid.UUID) (GetSessionRow, error) {
+	row := q.db.QueryRowContext(ctx, getSession, id)
+	var i GetSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.SessionDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Duration,
+		&i.PartWorkedOn,
+		&i.ActivityDone,
+		&i.EpisodeID,
+		&i.EpisodeTitle,
+		&i.EpisodeNumber,
+		&i.ProjectID,
+		&i.ProjectTitle,
+	)
+	return i, err
+}
+
+const getSessions = `-- name: GetSessions :many
+SELECT id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions ORDER BY session_date DESC LIMIT $1
+`
+
+func (q *Queries) GetSessions(ctx context.Context, limit int32) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, getSessions, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +180,7 @@ func (q *Queries) GetAllSessionsForProject(ctx context.Context, projectID uuid.U
 		var i Session
 		if err := rows.Scan(
 			&i.ID,
+			&i.SessionDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EpisodeID,
@@ -141,55 +202,88 @@ func (q *Queries) GetAllSessionsForProject(ctx context.Context, projectID uuid.U
 	return items, nil
 }
 
-const getSession = `-- name: GetSession :one
-SELECT 
-    sessions.id,
-    sessions.created_at,
-    sessions.updated_at,
-    sessions.duration,
-    sessions.part_worked_on,
-    sessions.activity_done,
-    episodes.id AS episode_id,
-    episodes.title AS episode_title,
-    episodes.episode_number AS episode_number,
-    projects.id AS project_id,
-    projects.title AS project_title
-FROM sessions
-JOIN episodes ON episodes.id = sessions.episode_id
-JOIN projects ON projects.id = sessions.project_id WHERE sessions.id = $1
+const getSessionsForEpisode = `-- name: GetSessionsForEpisode :many
+SELECT id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions WHERE episode_id = $1 ORDER BY session_date DESC LIMIT $2
 `
 
-type GetSessionRow struct {
-	ID            uuid.UUID      `json:"id"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	Duration      int64          `json:"duration"`
-	PartWorkedOn  Part           `json:"part_worked_on"`
-	ActivityDone  Activity       `json:"activity_done"`
-	EpisodeID     uuid.UUID      `json:"episode_id"`
-	EpisodeTitle  sql.NullString `json:"episode_title"`
-	EpisodeNumber int32          `json:"episode_number"`
-	ProjectID     uuid.UUID      `json:"project_id"`
-	ProjectTitle  string         `json:"project_title"`
+type GetSessionsForEpisodeParams struct {
+	EpisodeID uuid.UUID `json:"episode_id"`
+	Limit     int32     `json:"limit"`
 }
 
-func (q *Queries) GetSession(ctx context.Context, id uuid.UUID) (GetSessionRow, error) {
-	row := q.db.QueryRowContext(ctx, getSession, id)
-	var i GetSessionRow
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Duration,
-		&i.PartWorkedOn,
-		&i.ActivityDone,
-		&i.EpisodeID,
-		&i.EpisodeTitle,
-		&i.EpisodeNumber,
-		&i.ProjectID,
-		&i.ProjectTitle,
-	)
-	return i, err
+func (q *Queries) GetSessionsForEpisode(ctx context.Context, arg GetSessionsForEpisodeParams) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, getSessionsForEpisode, arg.EpisodeID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.EpisodeID,
+			&i.ProjectID,
+			&i.Duration,
+			&i.PartWorkedOn,
+			&i.ActivityDone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSessionsForProject = `-- name: GetSessionsForProject :many
+SELECT id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions WHERE project_id = $1 ORDER BY session_date DESC LIMIT $2
+`
+
+type GetSessionsForProjectParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	Limit     int32     `json:"limit"`
+}
+
+func (q *Queries) GetSessionsForProject(ctx context.Context, arg GetSessionsForProjectParams) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, getSessionsForProject, arg.ProjectID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.EpisodeID,
+			&i.ProjectID,
+			&i.Duration,
+			&i.PartWorkedOn,
+			&i.ActivityDone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUsersForSession = `-- name: GetUsersForSession :many
@@ -222,16 +316,18 @@ func (q *Queries) GetUsersForSession(ctx context.Context, sessionID uuid.UUID) (
 const updateSession = `-- name: UpdateSession :one
 UPDATE sessions SET
     duration = $2,
-    episode_id =$3,
-    project_id = (SELECT project_id FROM episodes WHERE id = $3),
-    part_worked_on = $4,
-    activity_done = $5
-WHERE sessions.id = $1 RETURNING id, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
+    session_date = $3,
+    episode_id = $4,
+    project_id = (SELECT project_id FROM episodes WHERE id = $4),
+    part_worked_on = $5,
+    activity_done = $6
+WHERE sessions.id = $1 RETURNING id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done
 `
 
 type UpdateSessionParams struct {
 	ID           uuid.UUID `json:"id"`
 	Duration     int64     `json:"duration"`
+	SessionDate  time.Time `json:"session_date"`
 	EpisodeID    uuid.UUID `json:"episode_id"`
 	PartWorkedOn Part      `json:"part_worked_on"`
 	ActivityDone Activity  `json:"activity_done"`
@@ -241,6 +337,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 	row := q.db.QueryRowContext(ctx, updateSession,
 		arg.ID,
 		arg.Duration,
+		arg.SessionDate,
 		arg.EpisodeID,
 		arg.PartWorkedOn,
 		arg.ActivityDone,
@@ -248,6 +345,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 	var i Session
 	err := row.Scan(
 		&i.ID,
+		&i.SessionDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EpisodeID,

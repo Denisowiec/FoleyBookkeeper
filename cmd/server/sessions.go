@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Denisowiec/FoleyBookkeeper/internal/db"
 	"github.com/google/uuid"
@@ -59,6 +60,7 @@ func (cfg *apiConfig) handlerCreateSession(w http.ResponseWriter, r *http.Reques
 
 	type sessionInputType struct {
 		Duration     int64  `json:"duration"`
+		SessionDate  string `json:"session_date"`
 		EpisodeID    string `json:"episode_id"`
 		PartWorkedOn string `json:"part_worked_on"`
 		ActivityDone string `json:"activity_done"`
@@ -75,6 +77,11 @@ func (cfg *apiConfig) handlerCreateSession(w http.ResponseWriter, r *http.Reques
 
 	createSessionParams := db.CreateSessionParams{}
 	createSessionParams.Duration = sessionInput.Duration
+	createSessionParams.SessionDate, err = time.Parse(time.DateOnly, sessionInput.SessionDate)
+	if err != nil {
+		respondWithError(w, "error decoding user input", http.StatusBadRequest, err)
+		return
+	}
 	createSessionParams.EpisodeID, err = uuid.Parse(sessionInput.EpisodeID)
 	if err != nil {
 		respondWithError(w, "error decoding user input", http.StatusBadRequest, err)
@@ -193,5 +200,83 @@ func (cfg *apiConfig) handlerGetSession(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
+	}
+}
+
+func (cfg *apiConfig) handlerGetSessions(w http.ResponseWriter, r *http.Request) {
+	_, _, err := authenticateUser(r, cfg.secret)
+	if err != nil {
+		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
+		return
+	}
+
+	type reqInputType struct {
+		ProjectID string `json:"project_id"`
+		EpisodeID string `json:"episode_id"`
+		Limit     int    `json:"limit"`
+	}
+	reqInput := reqInputType{}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&reqInput)
+	if err != nil {
+		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+		return
+	}
+
+	switch {
+	case reqInput.ProjectID != "":
+		projectID, err := uuid.Parse(reqInput.ProjectID)
+		if err != nil {
+			respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+			return
+		}
+		getSesParams := db.GetSessionsForProjectParams{
+			ProjectID: projectID,
+			Limit:     int32(reqInput.Limit),
+		}
+
+		list, err := cfg.db.GetSessionsForProject(r.Context(), getSesParams)
+		if err != nil {
+			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
+			return
+		}
+		err = respondWithJSON(w, http.StatusOK, list)
+		if err != nil {
+			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+			return
+		}
+	case reqInput.EpisodeID != "":
+		episodeID, err := uuid.Parse(reqInput.EpisodeID)
+		if err != nil {
+			respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+			return
+		}
+		getSesParams := db.GetSessionsForEpisodeParams{
+			EpisodeID: episodeID,
+			Limit:     int32(reqInput.Limit),
+		}
+
+		list, err := cfg.db.GetSessionsForEpisode(r.Context(), getSesParams)
+		if err != nil {
+			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
+			return
+		}
+		err = respondWithJSON(w, http.StatusOK, list)
+		if err != nil {
+			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+			return
+		}
+	default:
+		list, err := cfg.db.GetSessions(r.Context(), int32(reqInput.Limit))
+		if err != nil {
+			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
+			return
+		}
+		err = respondWithJSON(w, http.StatusOK, list)
+		if err != nil {
+			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+			return
+		}
 	}
 }

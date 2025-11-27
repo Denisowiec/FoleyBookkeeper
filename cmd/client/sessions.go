@@ -10,7 +10,8 @@ import (
 )
 
 func commandCreateSession(cfg *config, args []string) error {
-	// Takes project title, episode number, duration of session, part worked on, activity done and a list of usernames as input
+	// Takes project title, episode number, date of session,
+	// duration of session, part worked on, activity done and a list of usernames as input
 	if len(args) < 6 {
 		return fmt.Errorf("invalid number of arguments")
 	}
@@ -20,11 +21,16 @@ func commandCreateSession(cfg *config, args []string) error {
 	if err != nil {
 		return err
 	}
-	partWorkedOn := args[3]
-	activityDone := args[4]
+	dateFromInput, err := time.Parse(time.DateOnly, args[2])
+	if err != nil {
+		return err
+	}
+	date := dateFromInput.Format(time.DateOnly)
+	partWorkedOn := args[4]
+	activityDone := args[5]
 
 	// This converts the duration into something that should match the postgresql preferences
-	durationTime, err := time.ParseDuration(args[2])
+	durationTime, err := time.ParseDuration(args[3])
 	if err != nil {
 		return err
 	}
@@ -34,7 +40,7 @@ func commandCreateSession(cfg *config, args []string) error {
 	// We convert the usernames in the arguments into a list of IDs
 	users := []string{}
 
-	for _, username := range args[5:] {
+	for _, username := range args[6:] {
 		userID, err := getUserID(cfg, username)
 		if err != nil {
 			return err
@@ -73,12 +79,14 @@ func commandCreateSession(cfg *config, args []string) error {
 
 	type createSesType struct {
 		Duration     int64  `json:"duration"`
+		SessionDate  string `json:"session_date"`
 		EpisodeID    string `json:"episode_id"`
 		PartWorkedOn string `json:"part_worked_on"`
 		ActivityDone string `json:"activity_done"`
 	}
 	createSesReq := createSesType{
 		Duration:     duration,
+		SessionDate:  date,
 		EpisodeID:    ep.ID.String(),
 		PartWorkedOn: partWorkedOn,
 		ActivityDone: activityDone,
@@ -134,7 +142,7 @@ func commandCreateSession(cfg *config, args []string) error {
 
 func commandGetSessions(cfg *config, args []string) error {
 	// This command Gets a list of sessions for a given project/episode
-	// Takes project title, episode number and a limit of sessions to return
+	// Takes number of items, project title, episode number as arguments
 	if len(args) < 2 {
 		return fmt.Errorf("invalid number of arguments")
 	}
@@ -142,17 +150,13 @@ func commandGetSessions(cfg *config, args []string) error {
 	limit := 0
 	if len(args) == 3 {
 		var err error
-		limit, err = strconv.Atoi(args[2])
+		limit, err = strconv.Atoi(args[1])
 		if err != nil {
 			return err
 		}
 	}
 
 	projectName := args[0]
-	episodeNumber, err := strconv.Atoi(args[1])
-	if err != nil {
-		return err
-	}
 
 	// Now we need the project id
 	reqPrjBody := struct {
@@ -166,23 +170,16 @@ func commandGetSessions(cfg *config, args []string) error {
 		return err
 	}
 
-	// Now we need the episode ID
-	reqEpBody := struct {
-		ProjectID     string `json:"project_id"`
-		EpisodeNumber int    `json:"episode_number"`
-	}{
-		ProjectID:     prj.ID.String(),
-		EpisodeNumber: episodeNumber,
+	// The request will be different depending on the arguments given
+	var episodeNumber int
+	if len(args) >= 3 {
+
+		episodeNumber, err = strconv.Atoi(args[2])
+		if err != nil {
+			return err
+		}
+
 	}
-
-	ep, err := getThing(cfg, "/api/episodes", reqEpBody, db.Episode{})
-	if err != nil {
-		return err
-	}
-
-	episodeID := ep.ID
-
-	// TODO: The actual query
 
 	return nil
 }

@@ -143,6 +143,7 @@ type RefreshToken struct {
 
 type Session struct {
 	ID           uuid.UUID `json:"id"`
+	SessionDate  time.Time `json:"session_date"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 	EpisodeID    uuid.UUID `json:"episode_id"`

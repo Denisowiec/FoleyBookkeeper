@@ -35,7 +35,7 @@ func commandCreateSession(cfg *config, args []string) error {
 		return err
 	}
 
-	duration := durationTime.Microseconds()
+	duration := int32(durationTime.Minutes())
 
 	// We convert the usernames in the arguments into a list of IDs
 	users := []string{}
@@ -78,7 +78,7 @@ func commandCreateSession(cfg *config, args []string) error {
 	// Now we have everything we need to record a session
 
 	type createSesType struct {
-		Duration     int64  `json:"duration"`
+		Duration     int32  `json:"duration"`
 		SessionDate  string `json:"session_date"`
 		EpisodeID    string `json:"episode_id"`
 		PartWorkedOn string `json:"part_worked_on"`
@@ -97,7 +97,7 @@ func commandCreateSession(cfg *config, args []string) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusCreated {
 		return processErrorResponse(resp)
 	}
 
@@ -110,9 +110,9 @@ func commandCreateSession(cfg *config, args []string) error {
 
 	// Now we add the users to the session
 	reqUsSesBody := struct {
-		Users []string `json:"user_ids"`
+		UserIDs []string `json:"user_ids"`
 	}{
-		Users: users,
+		UserIDs: users,
 	}
 
 	url = fmt.Sprintf("%s/api/sessions/%s", cfg.serverAddress, ses.ID.String())
@@ -147,16 +147,16 @@ func commandGetSessions(cfg *config, args []string) error {
 		return fmt.Errorf("invalid number of arguments")
 	}
 
-	limit := 0
+	limit := 20
 	if len(args) == 3 {
 		var err error
-		limit, err = strconv.Atoi(args[1])
+		limit, err = strconv.Atoi(args[0])
 		if err != nil {
 			return err
 		}
 	}
 
-	projectName := args[0]
+	projectName := args[1]
 
 	// Now we need the project id
 	reqPrjBody := struct {
@@ -169,16 +169,76 @@ func commandGetSessions(cfg *config, args []string) error {
 	if err != nil {
 		return err
 	}
+	projectID := prj.ID.String()
+
+	type listItem struct {
+		db.Session `json:"session"`
+		Users      []db.GetUsersForSessionRow `json:"users"`
+	}
+	list := []listItem{}
 
 	// The request will be different depending on the arguments given
 	var episodeNumber int
 	if len(args) >= 3 {
-
 		episodeNumber, err = strconv.Atoi(args[2])
 		if err != nil {
 			return err
 		}
 
+		reqBody := struct {
+			ProjectID     string `json:"project_id"`
+			EpisodeNumber int    `json:"episode_number"`
+		}{
+			ProjectID:     projectID,
+			EpisodeNumber: episodeNumber,
+		}
+
+		ep, err := getThing(cfg, "/api/episodes", reqBody, db.Episode{})
+		if err != nil {
+			return err
+		}
+
+		episodeID := ep.ID.String()
+
+		req2Body := struct {
+			Limit     int    `json:"limit"`
+			EpisodeID string `json:"episode_id"`
+		}{
+			Limit:     limit,
+			EpisodeID: episodeID,
+		}
+
+		list, err = getThing(cfg, "/api/sessions", req2Body, list)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Sessions for project %s, episode %d:\n", prj.Title, episodeNumber)
+	} else {
+		reqBody := struct {
+			Limit     int    `json:"limit"`
+			ProjectID string `json:"project_id"`
+		}{
+			Limit:     limit,
+			ProjectID: projectID,
+		}
+		list, err = getThing(cfg, "/api/sessions", reqBody, list)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Sessions for project %s:\n", prj.Title)
+	}
+
+	for _, item := range list {
+		fmt.Printf("%s, %s, %s: ", item.SessionDate.Format(time.DateOnly), item.ActivityDone, item.PartWorkedOn)
+		for i, u := range item.Users {
+			if i > 0 {
+				fmt.Printf(", ")
+			}
+			fmt.Printf("%s", u.Username)
+		}
+		fmt.Printf("\n")
 	}
 
 	return nil

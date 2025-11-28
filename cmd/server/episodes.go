@@ -12,7 +12,7 @@ import (
 func (cfg *apiConfig) handlerCreateEpisode(w http.ResponseWriter, r *http.Request) {
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
-		respondWithError(w, "Operation unauthirized", http.StatusUnauthorized, err)
+		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func (cfg *apiConfig) handlerCreateEpisode(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = respondWithJSON(w, http.StatusAccepted, ep)
+	err = respondWithJSON(w, http.StatusCreated, ep)
 	if err != nil {
 		respondWithError(w, "Error processing response data", http.StatusInternalServerError, err)
 		return

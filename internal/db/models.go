@@ -148,7 +148,7 @@ type Session struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 	EpisodeID    uuid.UUID `json:"episode_id"`
 	ProjectID    uuid.UUID `json:"project_id"`
-	Duration     int64     `json:"duration"`
+	Duration     int32     `json:"duration"`
 	PartWorkedOn Part      `json:"part_worked_on"`
 	ActivityDone Activity  `json:"activity_done"`
 }

@@ -9,7 +9,7 @@ CREATE TABLE sessions (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     episode_id UUID NOT NULL REFERENCES episodes ON DELETE CASCADE,
     project_id UUID NOT NULL REFERENCES projects ON DELETE CASCADE,
-    duration INTERVAL NOT NULL,
+    duration INTEGER NOT NULL,
     part_worked_on PART NOT NULL,
     activity_done ACTIVITY NOT NULL
 );

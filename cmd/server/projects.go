@@ -48,7 +48,7 @@ func (cfg *apiConfig) handlerCreateProject(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, "Error creating project", http.StatusInternalServerError, err)
 		return
 	}
-	err = respondWithJSON(w, http.StatusAccepted, prj)
+	err = respondWithJSON(w, http.StatusCreated, prj)
 	if err != nil {
 		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return

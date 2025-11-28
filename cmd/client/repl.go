@@ -178,13 +178,19 @@ func listCommands() map[string]cliCommand {
 			name:        "get-project-eps",
 			description: "Returns all episodes for a given project",
 			usage:       "get-project-eps <project title>",
-			callback:    commandGetEpisodesForProjects,
+			callback:    commandGetEpisodesForProject,
 		},
 		"create-session": {
 			name:        "create-session",
 			description: "Creates a new session",
-			usage:       "create-session <project title> <episode number> <duration> <part worked on> <activity done> <user1> <user2> etc...",
+			usage:       "create-session <project title> <episode number> <date> <duration> <part worked on> <activity done> <user1> <user2> etc...",
 			callback:    commandCreateSession,
+		},
+		"get-sessions": {
+			name:        "get-sessions",
+			description: "Lists some sessions",
+			usage:       "get-sessions <how many> <project title> <episode number>",
+			callback:    commandGetSessions,
 		},
 	}
 }

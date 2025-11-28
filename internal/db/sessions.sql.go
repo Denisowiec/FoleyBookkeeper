@@ -60,7 +60,7 @@ INSERT INTO sessions (
 `
 
 type CreateSessionParams struct {
-	Duration     int64     `json:"duration"`
+	Duration     int32     `json:"duration"`
 	SessionDate  time.Time `json:"session_date"`
 	EpisodeID    uuid.UUID `json:"episode_id"`
 	PartWorkedOn Part      `json:"part_worked_on"`
@@ -135,7 +135,7 @@ type GetSessionRow struct {
 	SessionDate   time.Time      `json:"session_date"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
-	Duration      int64          `json:"duration"`
+	Duration      int32          `json:"duration"`
 	PartWorkedOn  Part           `json:"part_worked_on"`
 	ActivityDone  Activity       `json:"activity_done"`
 	EpisodeID     uuid.UUID      `json:"episode_id"`
@@ -203,7 +203,7 @@ func (q *Queries) GetSessions(ctx context.Context, limit int32) ([]Session, erro
 }
 
 const getSessionsForEpisode = `-- name: GetSessionsForEpisode :many
-SELECT id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions WHERE episode_id = $1 ORDER BY session_date DESC LIMIT $2
+SELECT sessions.id, sessions.session_date, sessions.created_at, sessions.updated_at, sessions.episode_id, sessions.project_id, sessions.duration, sessions.part_worked_on, sessions.activity_done FROM sessions WHERE sessions.episode_id = $1 ORDER BY session_date DESC LIMIT $2
 `
 
 type GetSessionsForEpisodeParams struct {
@@ -245,7 +245,7 @@ func (q *Queries) GetSessionsForEpisode(ctx context.Context, arg GetSessionsForE
 }
 
 const getSessionsForProject = `-- name: GetSessionsForProject :many
-SELECT id, session_date, created_at, updated_at, episode_id, project_id, duration, part_worked_on, activity_done FROM sessions WHERE project_id = $1 ORDER BY session_date DESC LIMIT $2
+SELECT sessions.id, sessions.session_date, sessions.created_at, sessions.updated_at, sessions.episode_id, sessions.project_id, sessions.duration, sessions.part_worked_on, sessions.activity_done FROM sessions WHERE sessions.project_id = $1 ORDER BY session_date DESC LIMIT $2
 `
 
 type GetSessionsForProjectParams struct {
@@ -287,22 +287,27 @@ func (q *Queries) GetSessionsForProject(ctx context.Context, arg GetSessionsForP
 }
 
 const getUsersForSession = `-- name: GetUsersForSession :many
-SELECT user_id FROM user_session WHERE session_id = $1
+SELECT user_session.user_id, users.username FROM user_session JOIN users ON users.id = user_session.user_id WHERE user_session.session_id = $1
 `
 
-func (q *Queries) GetUsersForSession(ctx context.Context, sessionID uuid.UUID) ([]uuid.UUID, error) {
+type GetUsersForSessionRow struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Username string    `json:"username"`
+}
+
+func (q *Queries) GetUsersForSession(ctx context.Context, sessionID uuid.UUID) ([]GetUsersForSessionRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUsersForSession, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []uuid.UUID
+	var items []GetUsersForSessionRow
 	for rows.Next() {
-		var user_id uuid.UUID
-		if err := rows.Scan(&user_id); err != nil {
+		var i GetUsersForSessionRow
+		if err := rows.Scan(&i.UserID, &i.Username); err != nil {
 			return nil, err
 		}
-		items = append(items, user_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -326,7 +331,7 @@ WHERE sessions.id = $1 RETURNING id, session_date, created_at, updated_at, episo
 
 type UpdateSessionParams struct {
 	ID           uuid.UUID `json:"id"`
-	Duration     int64     `json:"duration"`
+	Duration     int32     `json:"duration"`
 	SessionDate  time.Time `json:"session_date"`
 	EpisodeID    uuid.UUID `json:"episode_id"`
 	PartWorkedOn Part      `json:"part_worked_on"`

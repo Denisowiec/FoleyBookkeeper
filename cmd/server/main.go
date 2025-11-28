@@ -99,6 +99,7 @@ func main() {
 	mux.HandleFunc("POST /api/sessions", cfg.handlerCreateSession)
 	mux.HandleFunc("POST /api/sessions/{sessionid}", cfg.handlerAddUsersToSession)
 	mux.HandleFunc("GET /api/sessions/{sessionid}", cfg.handlerGetSession)
+	mux.HandleFunc("GET /api/sessions", cfg.handlerGetSessions)
 
 	// Here we create the server
 	s := &http.Server{

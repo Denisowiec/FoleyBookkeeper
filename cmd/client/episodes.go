@@ -71,7 +71,7 @@ func commandCreateEpisode(cfg *config, args []string) error {
 	return nil
 }
 
-func commandGetEpisodesForProjects(cfg *config, args []string) error {
+func commandGetEpisodesForProject(cfg *config, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("invalid number of arguments")
 	}

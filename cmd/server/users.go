@@ -94,7 +94,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email:     createdUser.Email,
 	}
 
-	err = respondWithJSON(w, http.StatusAccepted, resp)
+	err = respondWithJSON(w, http.StatusCreated, resp)
 	if err != nil {
 		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return

@@ -44,10 +44,10 @@ JOIN episodes ON episodes.id = sessions.episode_id
 JOIN projects ON projects.id = sessions.project_id WHERE sessions.id = $1;
 
 -- name: GetSessionsForProject :many
-SELECT * FROM sessions WHERE project_id = $1 ORDER BY session_date DESC LIMIT $2;
+SELECT sessions.* FROM sessions WHERE sessions.project_id = $1 ORDER BY session_date DESC LIMIT $2;
 
 -- name: GetSessionsForEpisode :many
-SELECT * FROM sessions WHERE episode_id = $1 ORDER BY session_date DESC LIMIT $2;
+SELECT sessions.* FROM sessions WHERE sessions.episode_id = $1 ORDER BY session_date DESC LIMIT $2;
 
 -- name: GetSessions :many
 SELECT * FROM sessions ORDER BY session_date DESC LIMIT $1;
@@ -65,4 +65,4 @@ INSERT INTO user_session (
 ) RETURNING *;
 
 -- name: GetUsersForSession :many
-SELECT user_id FROM user_session WHERE session_id = $1;
+SELECT user_session.user_id, users.username FROM user_session JOIN users ON users.id = user_session.user_id WHERE user_session.session_id = $1;

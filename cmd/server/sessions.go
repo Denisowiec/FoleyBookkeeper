@@ -59,7 +59,7 @@ func (cfg *apiConfig) handlerCreateSession(w http.ResponseWriter, r *http.Reques
 	}
 
 	type sessionInputType struct {
-		Duration     int64  `json:"duration"`
+		Duration     int32  `json:"duration"`
 		SessionDate  string `json:"session_date"`
 		EpisodeID    string `json:"episode_id"`
 		PartWorkedOn string `json:"part_worked_on"`
@@ -104,7 +104,7 @@ func (cfg *apiConfig) handlerCreateSession(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = respondWithJSON(w, http.StatusAccepted, session)
+	err = respondWithJSON(w, http.StatusCreated, session)
 	if err != nil {
 		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 		return
@@ -188,7 +188,7 @@ func (cfg *apiConfig) handlerGetSession(w http.ResponseWriter, r *http.Request) 
 
 	type getSesRespType struct {
 		db.GetSessionRow
-		Users []uuid.UUID `json:"users"`
+		Users []db.GetUsersForSessionRow `json:"users"`
 	}
 
 	getSesResp := getSesRespType{
@@ -224,6 +224,8 @@ func (cfg *apiConfig) handlerGetSessions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	list := []db.Session{}
+
 	switch {
 	case reqInput.ProjectID != "":
 		projectID, err := uuid.Parse(reqInput.ProjectID)
@@ -236,16 +238,12 @@ func (cfg *apiConfig) handlerGetSessions(w http.ResponseWriter, r *http.Request)
 			Limit:     int32(reqInput.Limit),
 		}
 
-		list, err := cfg.db.GetSessionsForProject(r.Context(), getSesParams)
+		list, err = cfg.db.GetSessionsForProject(r.Context(), getSesParams)
 		if err != nil {
 			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
 			return
 		}
-		err = respondWithJSON(w, http.StatusOK, list)
-		if err != nil {
-			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
-			return
-		}
+
 	case reqInput.EpisodeID != "":
 		episodeID, err := uuid.Parse(reqInput.EpisodeID)
 		if err != nil {
@@ -257,26 +255,42 @@ func (cfg *apiConfig) handlerGetSessions(w http.ResponseWriter, r *http.Request)
 			Limit:     int32(reqInput.Limit),
 		}
 
-		list, err := cfg.db.GetSessionsForEpisode(r.Context(), getSesParams)
+		list, err = cfg.db.GetSessionsForEpisode(r.Context(), getSesParams)
 		if err != nil {
 			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
-			return
-		}
-		err = respondWithJSON(w, http.StatusOK, list)
-		if err != nil {
-			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
 			return
 		}
 	default:
-		list, err := cfg.db.GetSessions(r.Context(), int32(reqInput.Limit))
+		list, err = cfg.db.GetSessions(r.Context(), int32(reqInput.Limit))
 		if err != nil {
 			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
 			return
 		}
-		err = respondWithJSON(w, http.StatusOK, list)
+	}
+
+	type listItem struct {
+		db.Session `json:"session"`
+		Users      []db.GetUsersForSessionRow `json:"users"`
+	}
+	finalList := []listItem{}
+
+	for _, ses := range list {
+		us, err := cfg.db.GetUsersForSession(r.Context(), ses.ID)
 		if err != nil {
-			respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+			respondWithError(w, "Error contacting database", http.StatusInternalServerError, err)
 			return
 		}
+
+		item := listItem{
+			Session: ses,
+			Users:   us,
+		}
+		finalList = append(finalList, item)
+	}
+
+	err = respondWithJSON(w, http.StatusOK, finalList)
+	if err != nil {
+		respondWithError(w, "Error processing user response", http.StatusInternalServerError, err)
+		return
 	}
 }

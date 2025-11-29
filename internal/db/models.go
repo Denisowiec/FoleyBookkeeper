@@ -106,6 +106,16 @@ func (ns NullPart) Value() (driver.Value, error) {
 	return string(ns.Part), nil
 }
 
+type Calculation struct {
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	ProjectID    uuid.UUID `json:"project_id"`
+	Budget       string    `json:"budget"`
+	Currency     string    `json:"currency"`
+	ExchangeRate string    `json:"exchange_rate"`
+}
+
 type Client struct {
 	ID         uuid.UUID      `json:"id"`
 	CreatedAt  time.Time      `json:"created_at"`
@@ -122,6 +132,14 @@ type Episode struct {
 	Title         sql.NullString `json:"title"`
 	EpisodeNumber int32          `json:"episode_number"`
 	ProjectID     uuid.UUID      `json:"project_id"`
+}
+
+type EpisodeCalc struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	EpisodeID uuid.UUID `json:"episode_id"`
+	CalcID    uuid.UUID `json:"calc_id"`
 }
 
 type Project struct {

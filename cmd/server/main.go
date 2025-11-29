@@ -101,6 +101,10 @@ func main() {
 	mux.HandleFunc("GET /api/sessions/{sessionid}", cfg.handlerGetSession)
 	mux.HandleFunc("GET /api/sessions", cfg.handlerGetSessions)
 
+	// Calculation related
+	mux.HandleFunc("POST /api/calculations", cfg.handlerCreateCalculation)
+	mux.HandleFunc("POST /api/calculations/{calcid}", cfg.handlerAddEpisodesToCalculation)
+
 	// Here we create the server
 	s := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.listen_port),

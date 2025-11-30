@@ -136,12 +136,64 @@ func (cfg *apiConfig) handlerAddEpisodesToCalculation(w http.ResponseWriter, r *
 	}
 }
 
-/*func (cfg *apiConfig) handlerGetCalculation(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerGetCalculation(w http.ResponseWriter, r *http.Request) {
 	_, _, err := authenticateUser(r, cfg.secret)
 	if err != nil {
 		respondWithError(w, "Operation unauthorized", http.StatusUnauthorized, err)
 		return
 	}
 
+	calcID, err := uuid.Parse(r.PathValue("calcid"))
+	if err != nil {
+		respondWithError(w, "Error decoding user input", http.StatusBadRequest, err)
+		return
+	}
 
-}*/
+	calc, err := cfg.db.GetCalculation(r.Context(), calcID)
+	if err != nil {
+		respondWithError(w, "Calculation not found", http.StatusBadRequest, err)
+		return
+	}
+
+	minutes, err := cfg.db.GetMinutesForCalculation(r.Context(), calcID)
+	if err != nil {
+		respondWithError(w, "Calculation not found", http.StatusBadRequest, err)
+		return
+	}
+
+	budgetActual, err := decimal.NewFromString(calc.Budget)
+	if err != nil {
+		respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
+		return
+	}
+	var budget decimal.Decimal
+
+	exchangeRate, err := decimal.NewFromString(calc.ExchangeRate)
+	if err != nil {
+		respondWithError(w, "Error processing data", http.StatusInternalServerError, err)
+		return
+	}
+
+	if calc.Currency != "PLN" {
+		budget = budgetActual.Mul(exchangeRate)
+	}
+
+	hours := decimal.NewFromInt(minutes / 60)
+	hourlyRate := budget.Div(hours)
+
+	calcReturnData := struct {
+		db.Calculation
+		BudgetInPLN string `json:"budget_default_currency"`
+		HourlyRate  string `json:"hourly_rate"`
+	}{
+		Calculation: calc,
+		BudgetInPLN: budget.String(),
+		HourlyRate:  hourlyRate.String(),
+	}
+
+	err = respondWithJSON(w, http.StatusOK, calcReturnData)
+	if err != nil {
+		respondWithError(w, "Error processing return data", http.StatusInternalServerError, err)
+		return
+	}
+}

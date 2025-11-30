@@ -224,7 +224,7 @@ func (cfg *apiConfig) handlerGetSessions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	list := []db.Session{}
+	var list []db.Session
 
 	switch {
 	case reqInput.ProjectID != "":
